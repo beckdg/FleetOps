@@ -1,0 +1,5 @@
+{
+  "*.{ts,tsx,js,json,md,yml,yaml}": ["prettier --write"],
+  "apps/api/{src,test}/**/*.ts": ["pnpm --filter @fleetops/api lint:fix"],
+  "packages/shared-types/src/**/*.ts": ["pnpm --filter @fleetops/shared-types lint:fix"]
+}
