@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @fleetops/shared-types build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @fleetops/api prisma:generate
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Unit tests
+        run: pnpm test
+        env:
+          NODE_ENV: test
+          PORT: 3000
+          DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+
+      - name: E2E tests
+        run: pnpm test:e2e
+        env:
+          NODE_ENV: test
+          PORT: 3000
+          DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+
+      - name: Build API
+        run: pnpm --filter @fleetops/api build
