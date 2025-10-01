@@ -8,3 +8,7 @@ datasource db {
 }
 
 // Models will be added as domain modules are implemented.
+//
+// Seed data: prisma/seed.ts
+// Run with:    pnpm --filter @fleetops/api prisma:seed
+// Or via CLI:  pnpm --filter @fleetops/api exec prisma db seed
