@@ -66,15 +66,20 @@ The API will be available at `http://localhost:3000`.
 
 Swagger documentation: `http://localhost:3000/docs`
 
-Health check: `http://localhost:3000/health`
+API base path: `http://localhost:3000/api/v1`
+
+Health check: `http://localhost:3000/api/v1/health`
 
 ## Environment Variables
 
-| Variable       | Description                          | Default       |
-| -------------- | ------------------------------------ | ------------- |
-| `NODE_ENV`     | Runtime environment                  | `development` |
-| `PORT`         | HTTP port for the API                | `3000`        |
-| `DATABASE_URL` | PostgreSQL connection string         | *(required)*  |
+| Variable                 | Description                          | Default       |
+| ------------------------ | ------------------------------------ | ------------- |
+| `NODE_ENV`               | Runtime environment                  | `development` |
+| `PORT`                   | HTTP port for the API                | `3000`        |
+| `DATABASE_URL`           | PostgreSQL connection string         | *(required)*  |
+| `JWT_SECRET`             | JWT signing secret (min 32 chars)    | dev placeholder |
+| `JWT_ACCESS_EXPIRES_IN`  | Access token expiry                  | `15m`         |
+| `JWT_REFRESH_EXPIRES_IN` | Refresh token expiry                 | `7d`          |
 
 See `apps/api/.env.example` for a complete example.
 
@@ -119,16 +124,18 @@ Pre-commit hooks run automatically after `pnpm install` via the `prepare` script
 
 ```
 apps/api/src/
+├── organizations/  # Tenant root (scaffold)
 ├── auth/           # Authentication (scaffold)
 ├── users/          # User management (scaffold)
 ├── roles/          # RBAC (scaffold)
 ├── database/       # Prisma integration
 ├── health/         # Health check endpoint
 ├── shared/         # Cross-cutting concerns
+│   └── bootstrap/  # Shared HTTP app configuration
 └── main.ts         # Application bootstrap
 ```
 
-Future modules (vehicles, drivers, trips, maintenance, fuel, inspections, notifications, audit logs, reports, API keys, webhooks) will be added following the same pattern.
+All routes are versioned under `/api/v1`. Future domain modules (vehicles, drivers, trips, maintenance, fuel, inspections, notifications, audit logs, reports, API keys, webhooks) will be organization-scoped and follow the same module pattern.
 
 ## Testing
 

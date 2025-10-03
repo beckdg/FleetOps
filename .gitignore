@@ -31,9 +31,6 @@ pnpm-debug.log*
 # Test coverage
 coverage/
 
-# Prisma
-apps/api/prisma/migrations/**/migration_lock.toml
-
 # Docker
 .docker/
 
