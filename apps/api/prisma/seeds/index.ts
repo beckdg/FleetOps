@@ -6,22 +6,23 @@ import type { Seeder } from './types';
  * Register new seeders here as domain modules are implemented.
  * Seeders run sequentially in the order defined below.
  *
- * Planned seeders:
- * - roles          RBAC roles and permissions
- * - users          Admin and demo users
- * - vehicles       Fleet vehicle records
- * - drivers        Driver profiles
- * - trips          Sample trip data
- * - maintenance    Maintenance schedules and records
- * - fuel           Fuel purchase records
- * - inspections    Vehicle inspection records
- * - notifications  Notification templates
- * - api-keys       Service API keys (non-production only)
- * - webhooks       Webhook endpoint fixtures
+ * Planned seeders (multi-tenant order):
+ * - organizations  Tenant organizations
+ * - roles            RBAC roles and permissions (org-scoped)
+ * - users            Admin and demo users
+ * - vehicles         Fleet vehicle records
+ * - drivers          Driver profiles
+ * - trips            Sample trip data
+ * - maintenance      Maintenance schedules and records
+ * - fuel             Fuel purchase records
+ * - inspections      Vehicle inspection records
+ * - notifications    Notification templates
+ * - api-keys         Service API keys (non-production only)
+ * - webhooks         Webhook endpoint fixtures
  */
 export const seeders: Seeder[] = [
-  // Example (uncomment when Role model exists):
-  // { name: 'roles', run: seedRoles },
+  // Example (uncomment when Organization model exists):
+  // { name: 'organizations', run: seedOrganizations },
 ];
 
 export async function runSeeders(context: import('./types').SeedContext): Promise<void> {
