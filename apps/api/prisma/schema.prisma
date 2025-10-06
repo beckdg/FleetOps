@@ -7,7 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Models will be added as domain modules are implemented.
+// Multi-tenant domain hierarchy (models pending):
+//
+//   Organization (tenant root)
+//     -> Users
+//     -> Roles / Permissions (RBAC, org-scoped)
+//     -> Vehicles
+//     -> Drivers
+//     -> Trips
+//     -> Maintenance
+//     -> Fuel, Inspections, Notifications, Audit logs, etc.
+//
+// Migrations: commit all files under prisma/migrations/, including migration_lock.toml.
 //
 // Seed data: prisma/seed.ts
 // Run with:    pnpm --filter @fleetops/api prisma:seed
