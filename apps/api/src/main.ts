@@ -1,11 +1,11 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter';
-import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
+import { configureApp } from './shared/bootstrap/configure-app';
+import { API_GLOBAL_PREFIX } from './shared/constants/app.constants';
 import { EnvironmentVariables } from './shared/constants/env.validation';
 
 async function bootstrap(): Promise<void> {
@@ -17,24 +17,12 @@ async function bootstrap(): Promise<void> {
   const port = configService.get('PORT', { infer: true });
   const nodeEnv = configService.get('NODE_ENV', { infer: true });
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  configureApp(app);
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('FleetOps API')
     .setDescription('Fleet and logistics management platform API')
-    .setVersion('0.1.0')
+    .setVersion('1.0')
     .addBearerAuth()
     .build();
 
@@ -45,6 +33,7 @@ async function bootstrap(): Promise<void> {
 
   const logger = new Logger('Bootstrap');
   logger.log(`FleetOps API running on port ${port} [${nodeEnv}]`);
+  logger.log(`API base path: http://localhost:${port}/${API_GLOBAL_PREFIX}`);
   logger.log(`Swagger documentation available at http://localhost:${port}/docs`);
 }
 
