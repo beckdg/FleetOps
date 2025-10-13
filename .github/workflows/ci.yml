@@ -10,6 +10,27 @@ jobs:
   quality:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fleetops
+          POSTGRES_PASSWORD: fleetops
+          POSTGRES_DB: fleetops_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U fleetops -d fleetops_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+      DATABASE_URL_TEST: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +53,9 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @fleetops/api prisma:generate
 
+      - name: Apply database migrations
+        run: pnpm --filter @fleetops/api prisma:migrate:deploy
+
       - name: Lint
         run: pnpm lint
 
@@ -40,17 +64,12 @@ jobs:
 
       - name: Unit tests
         run: pnpm test
-        env:
-          NODE_ENV: test
-          PORT: 3000
-          DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+
+      - name: Integration tests
+        run: pnpm test:integration
 
       - name: E2E tests
         run: pnpm test:e2e
-        env:
-          NODE_ENV: test
-          PORT: 3000
-          DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
 
       - name: Build API
         run: pnpm --filter @fleetops/api build
