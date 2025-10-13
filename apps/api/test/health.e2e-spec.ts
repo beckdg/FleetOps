@@ -1,11 +1,12 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/shared/bootstrap/configure-app';
+import { API_GLOBAL_PREFIX } from '../src/shared/constants/app.constants';
 import { PrismaService } from '../src/database/prisma.service';
-import { AllExceptionsFilter } from '../src/shared/filters/all-exceptions.filter';
 
 describe('HealthController (e2e)', () => {
   let app: INestApplication<App>;
@@ -24,16 +25,7 @@ describe('HealthController (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-    app.useGlobalFilters(new AllExceptionsFilter());
-
+    configureApp(app);
     await app.init();
   });
 
@@ -41,8 +33,8 @@ describe('HealthController (e2e)', () => {
     await app.close();
   });
 
-  it('GET /health returns service status', () => {
-    return request(app.getHttpServer()).get('/health').expect(200).expect({
+  it('GET /api/v1/health returns service status', () => {
+    return request(app.getHttpServer()).get(`/${API_GLOBAL_PREFIX}/health`).expect(200).expect({
       status: 'ok',
       service: 'fleetops-api',
     });
