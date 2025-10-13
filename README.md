@@ -50,13 +50,22 @@ docker compose up postgres -d
 
 Or use a local PostgreSQL 16 instance and update `DATABASE_URL` accordingly.
 
-### 4. Generate Prisma client
+Docker Compose maps PostgreSQL to host port **5433** (to avoid conflicts with a local Postgres on 5432). Use the URLs in `apps/api/.env.example`.
+
+### 4. Apply migrations and seed (optional)
+
+```bash
+pnpm --filter @fleetops/api prisma:migrate:deploy
+pnpm --filter @fleetops/api prisma:seed
+```
+
+### 5. Generate Prisma client
 
 ```bash
 pnpm --filter @fleetops/api prisma:generate
 ```
 
-### 5. Start the API in development mode
+### 6. Start the API in development mode
 
 ```bash
 pnpm start:dev
@@ -77,6 +86,7 @@ Health check: `http://localhost:3000/api/v1/health`
 | `NODE_ENV`               | Runtime environment                  | `development` |
 | `PORT`                   | HTTP port for the API                | `3000`        |
 | `DATABASE_URL`           | PostgreSQL connection string         | *(required)*  |
+| `DATABASE_URL_TEST`      | PostgreSQL for integration tests     | *(optional)*  |
 | `JWT_SECRET`             | JWT signing secret (min 32 chars)    | dev placeholder |
 | `JWT_ACCESS_EXPIRES_IN`  | Access token expiry                  | `15m`         |
 | `JWT_REFRESH_EXPIRES_IN` | Refresh token expiry                 | `7d`          |
@@ -107,6 +117,7 @@ docker compose up postgres -d
 | `pnpm lint`      | Lint all packages              |
 | `pnpm test`      | Run unit tests                 |
 | `pnpm test:e2e`  | Run API end-to-end tests       |
+| `pnpm --filter @fleetops/api test:integration` | Run API integration tests (requires Postgres) |
 | `pnpm start:dev` | Start API with hot reload      |
 
 ### Code Quality
@@ -124,10 +135,10 @@ Pre-commit hooks run automatically after `pnpm install` via the `prepare` script
 
 ```
 apps/api/src/
-├── organizations/  # Tenant root (scaffold)
-├── auth/           # Authentication (scaffold)
-├── users/          # User management (scaffold)
-├── roles/          # RBAC (scaffold)
+├── organizations/  # Tenant root
+├── users/          # User management
+├── roles/          # Role assignment
+├── permissions/    # Permissions and resolution
 ├── database/       # Prisma integration
 ├── health/         # Health check endpoint
 ├── shared/         # Cross-cutting concerns
@@ -145,6 +156,9 @@ pnpm test
 
 # End-to-end tests
 pnpm test:e2e
+
+# Integration tests (Postgres on port 5433; see DATABASE_URL_TEST)
+pnpm --filter @fleetops/api test:integration
 ```
 
 ## License
