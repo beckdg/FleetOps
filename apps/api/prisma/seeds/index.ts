@@ -1,36 +1,26 @@
 import type { Seeder } from './types';
+import { seedOrganizations } from './organizations.seed';
+import { seedPermissions } from './permissions.seed';
+import { seedRolePermissions } from './role-permissions.seed';
+import { seedRoles } from './roles.seed';
 
 /**
  * Ordered list of database seeders.
  *
- * Register new seeders here as domain modules are implemented.
- * Seeders run sequentially in the order defined below.
- *
- * Planned seeders (multi-tenant order):
- * - organizations  Tenant organizations
- * - roles            RBAC roles and permissions (org-scoped)
- * - users            Admin and demo users
- * - vehicles         Fleet vehicle records
- * - drivers          Driver profiles
- * - trips            Sample trip data
- * - maintenance      Maintenance schedules and records
- * - fuel             Fuel purchase records
- * - inspections      Vehicle inspection records
- * - notifications    Notification templates
- * - api-keys         Service API keys (non-production only)
- * - webhooks         Webhook endpoint fixtures
+ * Seed order matters for multi-tenant identity data:
+ * 1. organizations
+ * 2. permissions (global)
+ * 3. roles (org-scoped)
+ * 4. role-permissions (admin gets all permissions)
  */
 export const seeders: Seeder[] = [
-  // Example (uncomment when Organization model exists):
-  // { name: 'organizations', run: seedOrganizations },
+  { name: 'organizations', run: seedOrganizations },
+  { name: 'permissions', run: seedPermissions },
+  { name: 'roles', run: seedRoles },
+  { name: 'role-permissions', run: seedRolePermissions },
 ];
 
 export async function runSeeders(context: import('./types').SeedContext): Promise<void> {
-  if (seeders.length === 0) {
-    context.logger.info('No seeders registered — schema has no models yet');
-    return;
-  }
-
   for (const seeder of seeders) {
     context.logger.info(`Running seeder: ${seeder.name}`);
     await seeder.run(context);

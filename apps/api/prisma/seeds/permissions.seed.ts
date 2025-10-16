@@ -1,0 +1,37 @@
+import type { SeedContext } from './types';
+
+export const DEFAULT_PERMISSIONS = [
+  { resource: 'users', action: 'read', description: 'Read users' },
+  { resource: 'users', action: 'write', description: 'Create and update users' },
+  { resource: 'vehicles', action: 'read', description: 'Read vehicles' },
+  { resource: 'vehicles', action: 'write', description: 'Create and update vehicles' },
+  { resource: 'drivers', action: 'read', description: 'Read drivers' },
+  { resource: 'drivers', action: 'write', description: 'Create and update drivers' },
+  { resource: 'trips', action: 'read', description: 'Read trips' },
+  { resource: 'trips', action: 'write', description: 'Create and update trips' },
+  { resource: 'maintenance', action: 'read', description: 'Read maintenance records' },
+  {
+    resource: 'maintenance',
+    action: 'write',
+    description: 'Create and update maintenance records',
+  },
+] as const;
+
+export async function seedPermissions(context: SeedContext): Promise<void> {
+  for (const permission of DEFAULT_PERMISSIONS) {
+    await context.prisma.permission.upsert({
+      where: {
+        resource_action: {
+          resource: permission.resource,
+          action: permission.action,
+        },
+      },
+      update: {
+        description: permission.description,
+      },
+      create: permission,
+    });
+  }
+
+  context.logger.info(`Ensured ${DEFAULT_PERMISSIONS.length} default permissions`);
+}
