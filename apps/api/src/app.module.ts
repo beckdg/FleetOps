@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
 import { envValidationSchema } from './shared/constants/env.validation';
@@ -25,6 +26,7 @@ import { envValidationSchema } from './shared/constants/env.validation';
     DatabaseModule,
     HealthModule,
     OrganizationsModule,
+    PermissionsModule,
     AuthModule,
     UsersModule,
     RolesModule,
