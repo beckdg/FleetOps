@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 
-/**
- * Roles module scaffold.
- * RBAC, permissions, and role assignments will be implemented here.
- */
+import { OrganizationsModule } from '../organizations/organizations.module';
+import { UsersModule } from '../users/users.module';
+import { RoleRepository } from './roles.repository';
+import { RoleService } from './roles.service';
+
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
-  exports: [],
+  imports: [OrganizationsModule, UsersModule],
+  providers: [RoleRepository, RoleService],
+  exports: [RoleService, RoleRepository],
 })
 export class RolesModule {}
