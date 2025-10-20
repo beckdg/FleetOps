@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 
+import { OrganizationRepository } from './organizations.repository';
+import { OrganizationService } from './organizations.service';
+
 /**
- * Organizations module scaffold.
+ * Organizations module — tenant root for FleetOps multi-tenant SaaS.
  *
- * Organization is the tenant root for FleetOps multi-tenant SaaS.
- * All operational data (users, vehicles, drivers, trips, maintenance, etc.)
- * will be scoped to an organization once models are implemented.
+ * Each organization owns users, roles, vehicles, drivers, trips, maintenance,
+ * and other operational data via organizationId scoping.
  */
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
-  exports: [],
+  providers: [OrganizationRepository, OrganizationService],
+  exports: [OrganizationService, OrganizationRepository],
 })
 export class OrganizationsModule {}
