@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
 
-/**
- * Users module scaffold.
- * User management and profile operations will be implemented here.
- */
+import { OrganizationsModule } from '../organizations/organizations.module';
+import { UserRepository } from './users.repository';
+import { UserService } from './users.service';
+
 @Module({
-  imports: [],
-  controllers: [],
-  providers: [],
-  exports: [],
+  imports: [OrganizationsModule],
+  providers: [UserRepository, UserService],
+  exports: [UserService, UserRepository],
 })
 export class UsersModule {}
