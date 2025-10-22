@@ -1,0 +1,31 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
+import { DatabaseModule } from '../../src/database/database.module';
+import { OrganizationsModule } from '../../src/organizations/organizations.module';
+import { PermissionsModule } from '../../src/permissions/permissions.module';
+import { RolesModule } from '../../src/roles/roles.module';
+import { UsersModule } from '../../src/users/users.module';
+import { envValidationSchema } from '../../src/shared/constants/env.validation';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      expandVariables: true,
+      envFilePath: ['.env'],
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        abortEarly: true,
+        allowUnknown: true,
+      },
+    }),
+    DatabaseModule,
+    OrganizationsModule,
+    PermissionsModule,
+    UsersModule,
+    RolesModule,
+  ],
+})
+export class IdentityTestModule {}

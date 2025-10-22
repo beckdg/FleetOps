@@ -1,0 +1,24 @@
+import { PrismaClient } from '@prisma/client';
+
+const TABLES = [
+  'refresh_tokens',
+  'user_roles',
+  'role_permissions',
+  'users',
+  'roles',
+  'permissions',
+  'organizations',
+] as const;
+
+export async function resetDatabase(prisma: PrismaClient): Promise<void> {
+  const tableList = TABLES.join(', ');
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`);
+}
+
+export async function migrateDatabase(): Promise<void> {
+  const { execSync } = await import('child_process');
+  execSync('pnpm exec prisma migrate deploy', {
+    cwd: process.cwd(),
+    stdio: 'inherit',
+  });
+}
