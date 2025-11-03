@@ -59,6 +59,15 @@ export class RoleRepository {
       .then(() => undefined);
   }
 
+  findRoleIdsByUserId(userId: string): Promise<string[]> {
+    return this.prisma.userRole
+      .findMany({
+        where: { userId },
+        select: { roleId: true },
+      })
+      .then((assignments) => assignments.map((assignment) => assignment.roleId));
+  }
+
   requireById(id: string): Promise<Role> {
     return this.findById(id).then((role) => {
       if (!role) {
