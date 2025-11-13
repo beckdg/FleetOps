@@ -15,8 +15,11 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users User[] @relation("OrganizationUsers")
-  roles Role[] @relation("OrganizationRoles")
+  users              User[]              @relation("OrganizationUsers")
+  roles              Role[]              @relation("OrganizationRoles")
+  vehicles           Vehicle[]           @relation("OrganizationVehicles")
+  drivers            Driver[]            @relation("OrganizationDrivers")
+  vehicleAssignments VehicleAssignment[] @relation("OrganizationVehicleAssignments")
 
   @@index([isActive])
   @@map("organizations")
@@ -37,6 +40,7 @@ model User {
   organization  Organization @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Restrict)
   userRoles     UserRole[]   @relation("UserRoleAssignments")
   refreshTokens RefreshToken[] @relation("UserRefreshTokens")
+  vehicleAssignmentsCreated VehicleAssignment[] @relation("AssignmentCreatedBy")
 
   @@unique([organizationId, email], map: "users_organization_id_email_key")
   @@index([organizationId], map: "users_organization_id_idx")
@@ -116,4 +120,83 @@ model RefreshToken {
   @@index([expiresAt], map: "refresh_tokens_expires_at_idx")
   @@index([revokedAt], map: "refresh_tokens_revoked_at_idx")
   @@map("refresh_tokens")
+}
+
+enum VehicleStatus {
+  ACTIVE
+  IN_MAINTENANCE
+  OUT_OF_SERVICE
+  RETIRED
+}
+
+enum DriverStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+model Vehicle {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  plateNumber    String        @map("plate_number")
+  vin            String        @unique
+  make           String
+  model          String
+  year           Int
+  status         VehicleStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization        @relation("OrganizationVehicles", fields: [organizationId], references: [id], onDelete: Restrict)
+  assignments  VehicleAssignment[] @relation("VehicleAssignments")
+
+  @@unique([organizationId, plateNumber], map: "vehicles_organization_id_plate_number_key")
+  @@index([organizationId], map: "vehicles_organization_id_idx")
+  @@index([organizationId, status], map: "vehicles_organization_id_status_idx")
+  @@index([status], map: "vehicles_status_idx")
+  @@map("vehicles")
+}
+
+model Driver {
+  id                String       @id @default(uuid()) @db.Uuid
+  organizationId    String       @map("organization_id") @db.Uuid
+  employeeId        String       @map("employee_id")
+  firstName         String       @map("first_name")
+  lastName          String       @map("last_name")
+  licenseNumber     String       @map("license_number")
+  licenseExpiryDate DateTime     @map("license_expiry_date") @db.Date
+  status            DriverStatus @default(ACTIVE)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  organization Organization        @relation("OrganizationDrivers", fields: [organizationId], references: [id], onDelete: Restrict)
+  assignments  VehicleAssignment[] @relation("DriverAssignments")
+
+  @@unique([organizationId, employeeId], map: "drivers_organization_id_employee_id_key")
+  @@unique([organizationId, licenseNumber], map: "drivers_organization_id_license_number_key")
+  @@index([organizationId], map: "drivers_organization_id_idx")
+  @@index([organizationId, status], map: "drivers_organization_id_status_idx")
+  @@index([status], map: "drivers_status_idx")
+  @@map("drivers")
+}
+
+model VehicleAssignment {
+  id               String    @id @default(uuid()) @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  vehicleId        String    @map("vehicle_id") @db.Uuid
+  driverId         String    @map("driver_id") @db.Uuid
+  assignedAt       DateTime  @default(now()) @map("assigned_at")
+  endedAt          DateTime? @map("ended_at")
+  assignedByUserId String    @map("assigned_by_user_id") @db.Uuid
+
+  organization   Organization @relation("OrganizationVehicleAssignments", fields: [organizationId], references: [id], onDelete: Restrict)
+  vehicle        Vehicle      @relation("VehicleAssignments", fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver         Driver       @relation("DriverAssignments", fields: [driverId], references: [id], onDelete: Restrict)
+  assignedByUser User         @relation("AssignmentCreatedBy", fields: [assignedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId], map: "vehicle_assignments_organization_id_idx")
+  @@index([vehicleId], map: "vehicle_assignments_vehicle_id_idx")
+  @@index([driverId], map: "vehicle_assignments_driver_id_idx")
+  @@index([endedAt], map: "vehicle_assignments_ended_at_idx")
+  @@map("vehicle_assignments")
 }
