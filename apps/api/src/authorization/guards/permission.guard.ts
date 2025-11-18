@@ -16,7 +16,7 @@ import { RoleRepository } from '../../roles/roles.repository';
 import {
   ADMIN_ROLE_NAME,
   ORGANIZATION_SCOPE_PARAM_KEY,
-  REQUIRED_PERMISSION_KEY,
+  REQUIRED_PERMISSIONS_KEY,
 } from '../constants/authorization.constants';
 import { RequiredPermissionMetadata } from '../decorators/require-permission.decorator';
 import { AuthorizationAuditService } from '../services/authorization-audit.service';
@@ -40,12 +40,12 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    const requiredPermission = this.reflector.getAllAndOverride<RequiredPermissionMetadata>(
-      REQUIRED_PERMISSION_KEY,
+    const requiredPermissions = this.reflector.getAllAndOverride<RequiredPermissionMetadata[]>(
+      REQUIRED_PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );
 
-    if (!requiredPermission) {
+    if (!requiredPermissions?.length) {
       return true;
     }
 
@@ -56,10 +56,10 @@ export class PermissionGuard implements CanActivate {
       throw new UnauthorizedException('Authentication required');
     }
 
-    const permissionKey = formatPermissionKey(
-      requiredPermission.resource,
-      requiredPermission.action,
+    const permissionKeys = requiredPermissions.map((permission) =>
+      formatPermissionKey(permission.resource, permission.action),
     );
+    const requiredPermissionLabel = permissionKeys.join(',');
 
     const organizationScopeParam = this.reflector.getAllAndOverride<string>(
       ORGANIZATION_SCOPE_PARAM_KEY,
@@ -76,7 +76,7 @@ export class PermissionGuard implements CanActivate {
         this.authorizationAuditService.logAuthorizationCheck({
           userId: user.userId,
           organizationId: user.organizationId,
-          requiredPermission: permissionKey,
+          requiredPermission: requiredPermissionLabel,
           result: 'denied',
           reason: 'cross_organization',
         });
@@ -95,7 +95,7 @@ export class PermissionGuard implements CanActivate {
       this.authorizationAuditService.logAuthorizationCheck({
         userId: user.userId,
         organizationId: user.organizationId,
-        requiredPermission: permissionKey,
+        requiredPermission: requiredPermissionLabel,
         result: 'allowed',
         reason: 'admin_bypass',
       });
@@ -103,28 +103,30 @@ export class PermissionGuard implements CanActivate {
       return true;
     }
 
-    const hasPermission = await this.permissionResolutionService.userHasPermission(
-      user.userId,
-      requiredPermission.resource,
-      requiredPermission.action,
-    );
+    for (const permission of requiredPermissions) {
+      const hasPermission = await this.permissionResolutionService.userHasPermission(
+        user.userId,
+        permission.resource,
+        permission.action,
+      );
 
-    if (!hasPermission) {
-      this.authorizationAuditService.logAuthorizationCheck({
-        userId: user.userId,
-        organizationId: user.organizationId,
-        requiredPermission: permissionKey,
-        result: 'denied',
-        reason: 'missing_permission',
-      });
+      if (!hasPermission) {
+        this.authorizationAuditService.logAuthorizationCheck({
+          userId: user.userId,
+          organizationId: user.organizationId,
+          requiredPermission: formatPermissionKey(permission.resource, permission.action),
+          result: 'denied',
+          reason: 'missing_permission',
+        });
 
-      throw new ForbiddenException('Insufficient permissions');
+        throw new ForbiddenException('Insufficient permissions');
+      }
     }
 
     this.authorizationAuditService.logAuthorizationCheck({
       userId: user.userId,
       organizationId: user.organizationId,
-      requiredPermission: permissionKey,
+      requiredPermission: requiredPermissionLabel,
       result: 'allowed',
     });
 
