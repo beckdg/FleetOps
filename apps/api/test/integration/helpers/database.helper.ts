@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 
 const TABLES = [
+  'vehicle_assignments',
+  'vehicles',
+  'drivers',
   'refresh_tokens',
   'user_roles',
   'role_permissions',
