@@ -20,6 +20,7 @@ model Organization {
   vehicles           Vehicle[]           @relation("OrganizationVehicles")
   drivers            Driver[]            @relation("OrganizationDrivers")
   vehicleAssignments VehicleAssignment[] @relation("OrganizationVehicleAssignments")
+  trips              Trip[]              @relation("OrganizationTrips")
 
   @@index([isActive])
   @@map("organizations")
@@ -41,6 +42,8 @@ model User {
   userRoles     UserRole[]   @relation("UserRoleAssignments")
   refreshTokens RefreshToken[] @relation("UserRefreshTokens")
   vehicleAssignmentsCreated VehicleAssignment[] @relation("AssignmentCreatedBy")
+  tripsCreated              Trip[]              @relation("TripCreatedBy")
+  tripEventsCreated         TripEvent[]         @relation("TripEventCreatedBy")
 
   @@unique([organizationId, email], map: "users_organization_id_email_key")
   @@index([organizationId], map: "users_organization_id_idx")
@@ -149,6 +152,7 @@ model Vehicle {
 
   organization Organization        @relation("OrganizationVehicles", fields: [organizationId], references: [id], onDelete: Restrict)
   assignments  VehicleAssignment[] @relation("VehicleAssignments")
+  trips        Trip[]              @relation("VehicleTrips")
 
   @@unique([organizationId, plateNumber], map: "vehicles_organization_id_plate_number_key")
   @@index([organizationId], map: "vehicles_organization_id_idx")
@@ -171,6 +175,7 @@ model Driver {
 
   organization Organization        @relation("OrganizationDrivers", fields: [organizationId], references: [id], onDelete: Restrict)
   assignments  VehicleAssignment[] @relation("DriverAssignments")
+  trips        Trip[]              @relation("DriverTrips")
 
   @@unique([organizationId, employeeId], map: "drivers_organization_id_employee_id_key")
   @@unique([organizationId, licenseNumber], map: "drivers_organization_id_license_number_key")
@@ -199,4 +204,70 @@ model VehicleAssignment {
   @@index([driverId], map: "vehicle_assignments_driver_id_idx")
   @@index([endedAt], map: "vehicle_assignments_ended_at_idx")
   @@map("vehicle_assignments")
+}
+
+enum TripStatus {
+  PLANNED
+  DISPATCHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TripEventType {
+  TRIP_CREATED
+  TRIP_DISPATCHED
+  TRIP_STARTED
+  TRIP_COMPLETED
+  TRIP_CANCELLED
+}
+
+model Trip {
+  id               String     @id @default(uuid()) @db.Uuid
+  organizationId   String     @map("organization_id") @db.Uuid
+  vehicleId        String     @map("vehicle_id") @db.Uuid
+  driverId         String     @map("driver_id") @db.Uuid
+  tripNumber       String     @map("trip_number")
+  origin           String
+  destination      String
+  scheduledStartAt DateTime   @map("scheduled_start_at")
+  scheduledEndAt   DateTime   @map("scheduled_end_at")
+  actualStartAt    DateTime?  @map("actual_start_at")
+  actualEndAt      DateTime?  @map("actual_end_at")
+  status           TripStatus @default(PLANNED)
+  createdByUserId  String     @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  organization  Organization @relation("OrganizationTrips", fields: [organizationId], references: [id], onDelete: Restrict)
+  vehicle       Vehicle      @relation("VehicleTrips", fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver        Driver       @relation("DriverTrips", fields: [driverId], references: [id], onDelete: Restrict)
+  createdByUser User         @relation("TripCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  events        TripEvent[]  @relation("TripEvents")
+
+  @@unique([organizationId, tripNumber], map: "trips_organization_id_trip_number_key")
+  @@index([organizationId], map: "trips_organization_id_idx")
+  @@index([organizationId, status], map: "trips_organization_id_status_idx")
+  @@index([vehicleId], map: "trips_vehicle_id_idx")
+  @@index([driverId], map: "trips_driver_id_idx")
+  @@index([scheduledStartAt, scheduledEndAt], map: "trips_schedule_idx")
+  @@index([status], map: "trips_status_idx")
+  @@map("trips")
+}
+
+model TripEvent {
+  id              String        @id @default(uuid()) @db.Uuid
+  tripId          String        @map("trip_id") @db.Uuid
+  eventType       TripEventType @map("event_type")
+  notes           String?
+  createdByUserId String        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  trip          Trip @relation("TripEvents", fields: [tripId], references: [id], onDelete: Cascade)
+  createdByUser User @relation("TripEventCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tripId], map: "trip_events_trip_id_idx")
+  @@index([eventType], map: "trip_events_event_type_idx")
+  @@index([createdAt], map: "trip_events_created_at_idx")
+  @@map("trip_events")
 }
