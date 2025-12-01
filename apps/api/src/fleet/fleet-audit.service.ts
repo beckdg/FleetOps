@@ -5,7 +5,12 @@ export type FleetAuditEvent =
   | 'vehicle_status_changed'
   | 'driver_status_changed'
   | 'vehicle_assigned'
-  | 'vehicle_assignment_ended';
+  | 'vehicle_assignment_ended'
+  | 'trip_created'
+  | 'trip_dispatched'
+  | 'trip_started'
+  | 'trip_completed'
+  | 'trip_cancelled';
 
 @Injectable()
 export class FleetAuditService {
@@ -72,6 +77,80 @@ export class FleetAuditService {
       vehicleId: entry.vehicleId,
       driverId: entry.driverId,
       endedByUserId: entry.endedByUserId,
+    });
+  }
+
+  logTripCreated(entry: {
+    organizationId: string;
+    tripId: string;
+    tripNumber: string;
+    vehicleId: string;
+    driverId: string;
+    createdByUserId: string;
+  }): void {
+    this.log('trip_created', {
+      organizationId: entry.organizationId,
+      tripId: entry.tripId,
+      tripNumber: entry.tripNumber,
+      vehicleId: entry.vehicleId,
+      driverId: entry.driverId,
+      createdByUserId: entry.createdByUserId,
+    });
+  }
+
+  logTripDispatched(entry: {
+    organizationId: string;
+    tripId: string;
+    tripNumber: string;
+    dispatchedByUserId: string;
+  }): void {
+    this.log('trip_dispatched', {
+      organizationId: entry.organizationId,
+      tripId: entry.tripId,
+      tripNumber: entry.tripNumber,
+      dispatchedByUserId: entry.dispatchedByUserId,
+    });
+  }
+
+  logTripStarted(entry: {
+    organizationId: string;
+    tripId: string;
+    tripNumber: string;
+    startedByUserId: string;
+  }): void {
+    this.log('trip_started', {
+      organizationId: entry.organizationId,
+      tripId: entry.tripId,
+      tripNumber: entry.tripNumber,
+      startedByUserId: entry.startedByUserId,
+    });
+  }
+
+  logTripCompleted(entry: {
+    organizationId: string;
+    tripId: string;
+    tripNumber: string;
+    completedByUserId: string;
+  }): void {
+    this.log('trip_completed', {
+      organizationId: entry.organizationId,
+      tripId: entry.tripId,
+      tripNumber: entry.tripNumber,
+      completedByUserId: entry.completedByUserId,
+    });
+  }
+
+  logTripCancelled(entry: {
+    organizationId: string;
+    tripId: string;
+    tripNumber: string;
+    cancelledByUserId: string;
+  }): void {
+    this.log('trip_cancelled', {
+      organizationId: entry.organizationId,
+      tripId: entry.tripId,
+      tripNumber: entry.tripNumber,
+      cancelledByUserId: entry.cancelledByUserId,
     });
   }
 
