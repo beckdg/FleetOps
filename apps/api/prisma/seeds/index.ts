@@ -1,9 +1,11 @@
 import type { Seeder } from './types';
+import { seedDemoFleetSetup } from './demo-fleet-setup.seed';
 import { seedDrivers } from './drivers.seed';
 import { seedOrganizations } from './organizations.seed';
 import { seedPermissions } from './permissions.seed';
 import { seedRolePermissions } from './role-permissions.seed';
 import { seedRoles } from './roles.seed';
+import { seedTrips } from './trips.seed';
 import { seedVehicles } from './vehicles.seed';
 
 /**
@@ -16,6 +18,8 @@ import { seedVehicles } from './vehicles.seed';
  * 4. role-permissions (admin gets all permissions)
  * 5. vehicles (org-scoped demo fleet)
  * 6. drivers (org-scoped demo drivers)
+ * 7. demo fleet setup (dispatcher user + assignments)
+ * 8. trips (demo operational trips)
  */
 export const seeders: Seeder[] = [
   { name: 'organizations', run: seedOrganizations },
@@ -24,6 +28,8 @@ export const seeders: Seeder[] = [
   { name: 'role-permissions', run: seedRolePermissions },
   { name: 'vehicles', run: seedVehicles },
   { name: 'drivers', run: seedDrivers },
+  { name: 'demo-fleet-setup', run: seedDemoFleetSetup },
+  { name: 'trips', run: seedTrips },
 ];
 
 export async function runSeeders(context: import('./types').SeedContext): Promise<void> {
