@@ -12,6 +12,7 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
 import { TestProtectedModule } from './test-protected/test-protected.module';
 import { UsersModule } from './users/users.module';
+import { TripsModule } from './trips/trips.module';
 import { VehicleAssignmentsModule } from './vehicle-assignments/vehicle-assignments.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { envValidationSchema } from './shared/constants/env.validation';
@@ -41,6 +42,7 @@ import { envValidationSchema } from './shared/constants/env.validation';
     VehiclesModule,
     DriversModule,
     VehicleAssignmentsModule,
+    TripsModule,
     TestProtectedModule,
   ],
 })
