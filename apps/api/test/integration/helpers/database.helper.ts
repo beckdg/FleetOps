@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
 const TABLES = [
+  'trip_events',
+  'trips',
   'vehicle_assignments',
   'vehicles',
   'drivers',
