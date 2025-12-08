@@ -21,6 +21,8 @@ model Organization {
   drivers            Driver[]            @relation("OrganizationDrivers")
   vehicleAssignments VehicleAssignment[] @relation("OrganizationVehicleAssignments")
   trips              Trip[]              @relation("OrganizationTrips")
+  maintenanceRecords MaintenanceRecord[] @relation("OrganizationMaintenanceRecords")
+  inspections        Inspection[]        @relation("OrganizationInspections")
 
   @@index([isActive])
   @@map("organizations")
@@ -44,6 +46,9 @@ model User {
   vehicleAssignmentsCreated VehicleAssignment[] @relation("AssignmentCreatedBy")
   tripsCreated              Trip[]              @relation("TripCreatedBy")
   tripEventsCreated         TripEvent[]         @relation("TripEventCreatedBy")
+  maintenanceRecordsCreated MaintenanceRecord[] @relation("MaintenanceCreatedBy")
+  maintenanceEventsCreated  MaintenanceEvent[]  @relation("MaintenanceEventCreatedBy")
+  inspectionsCreated        Inspection[]        @relation("InspectionCreatedBy")
 
   @@unique([organizationId, email], map: "users_organization_id_email_key")
   @@index([organizationId], map: "users_organization_id_idx")
@@ -153,6 +158,8 @@ model Vehicle {
   organization Organization        @relation("OrganizationVehicles", fields: [organizationId], references: [id], onDelete: Restrict)
   assignments  VehicleAssignment[] @relation("VehicleAssignments")
   trips        Trip[]              @relation("VehicleTrips")
+  maintenanceRecords MaintenanceRecord[] @relation("VehicleMaintenanceRecords")
+  inspections  Inspection[]        @relation("VehicleInspections")
 
   @@unique([organizationId, plateNumber], map: "vehicles_organization_id_plate_number_key")
   @@index([organizationId], map: "vehicles_organization_id_idx")
@@ -270,4 +277,93 @@ model TripEvent {
   @@index([eventType], map: "trip_events_event_type_idx")
   @@index([createdAt], map: "trip_events_created_at_idx")
   @@map("trip_events")
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  EMERGENCY
+}
+
+enum MaintenanceEventType {
+  MAINTENANCE_SCHEDULED
+  MAINTENANCE_STARTED
+  MAINTENANCE_COMPLETED
+  MAINTENANCE_CANCELLED
+}
+
+model MaintenanceRecord {
+  id              String            @id @default(uuid()) @db.Uuid
+  organizationId  String            @map("organization_id") @db.Uuid
+  vehicleId       String            @map("vehicle_id") @db.Uuid
+  title           String
+  description     String?
+  maintenanceType MaintenanceType   @map("maintenance_type")
+  scheduledAt     DateTime          @map("scheduled_at")
+  startedAt       DateTime?         @map("started_at")
+  completedAt     DateTime?         @map("completed_at")
+  status          MaintenanceStatus @default(SCHEDULED)
+  estimatedCost   Decimal?          @map("estimated_cost") @db.Decimal(12, 2)
+  actualCost      Decimal?          @map("actual_cost") @db.Decimal(12, 2)
+  createdByUserId String            @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  organization  Organization      @relation("OrganizationMaintenanceRecords", fields: [organizationId], references: [id], onDelete: Restrict)
+  vehicle       Vehicle           @relation("VehicleMaintenanceRecords", fields: [vehicleId], references: [id], onDelete: Restrict)
+  createdByUser User              @relation("MaintenanceCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  events        MaintenanceEvent[] @relation("MaintenanceRecordEvents")
+
+  @@index([organizationId], map: "maintenance_records_organization_id_idx")
+  @@index([organizationId, status], map: "maintenance_records_organization_id_status_idx")
+  @@index([vehicleId], map: "maintenance_records_vehicle_id_idx")
+  @@index([vehicleId, status], map: "maintenance_records_vehicle_id_status_idx")
+  @@index([scheduledAt], map: "maintenance_records_scheduled_at_idx")
+  @@map("maintenance_records")
+}
+
+model MaintenanceEvent {
+  id                  String               @id @default(uuid()) @db.Uuid
+  maintenanceRecordId String               @map("maintenance_record_id") @db.Uuid
+  eventType           MaintenanceEventType @map("event_type")
+  notes               String?
+  createdByUserId     String               @map("created_by_user_id") @db.Uuid
+  createdAt           DateTime             @default(now()) @map("created_at")
+
+  maintenanceRecord MaintenanceRecord @relation("MaintenanceRecordEvents", fields: [maintenanceRecordId], references: [id], onDelete: Cascade)
+  createdByUser     User              @relation("MaintenanceEventCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([maintenanceRecordId], map: "maintenance_events_maintenance_record_id_idx")
+  @@index([eventType], map: "maintenance_events_event_type_idx")
+  @@index([createdAt], map: "maintenance_events_created_at_idx")
+  @@map("maintenance_events")
+}
+
+model Inspection {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  vehicleId       String   @map("vehicle_id") @db.Uuid
+  inspectionDate  DateTime @map("inspection_date") @db.Date
+  passed          Boolean
+  notes           String?
+  inspectorName   String   @map("inspector_name")
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  organization  Organization @relation("OrganizationInspections", fields: [organizationId], references: [id], onDelete: Restrict)
+  vehicle       Vehicle      @relation("VehicleInspections", fields: [vehicleId], references: [id], onDelete: Restrict)
+  createdByUser User         @relation("InspectionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId], map: "inspections_organization_id_idx")
+  @@index([vehicleId], map: "inspections_vehicle_id_idx")
+  @@index([inspectionDate], map: "inspections_inspection_date_idx")
+  @@index([passed], map: "inspections_passed_idx")
+  @@map("inspections")
 }
