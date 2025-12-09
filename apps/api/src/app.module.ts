@@ -7,6 +7,8 @@ import { DatabaseModule } from './database/database.module';
 import { DriversModule } from './drivers/drivers.module';
 import { FleetModule } from './fleet/fleet.module';
 import { HealthModule } from './health/health.module';
+import { InspectionsModule } from './inspections/inspections.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { RolesModule } from './roles/roles.module';
@@ -43,6 +45,8 @@ import { envValidationSchema } from './shared/constants/env.validation';
     DriversModule,
     VehicleAssignmentsModule,
     TripsModule,
+    MaintenanceModule,
+    InspectionsModule,
     TestProtectedModule,
   ],
 })
