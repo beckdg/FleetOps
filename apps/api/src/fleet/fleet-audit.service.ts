@@ -10,7 +10,12 @@ export type FleetAuditEvent =
   | 'trip_dispatched'
   | 'trip_started'
   | 'trip_completed'
-  | 'trip_cancelled';
+  | 'trip_cancelled'
+  | 'maintenance_scheduled'
+  | 'maintenance_started'
+  | 'maintenance_completed'
+  | 'maintenance_cancelled'
+  | 'inspection_created';
 
 @Injectable()
 export class FleetAuditService {
@@ -151,6 +156,78 @@ export class FleetAuditService {
       tripId: entry.tripId,
       tripNumber: entry.tripNumber,
       cancelledByUserId: entry.cancelledByUserId,
+    });
+  }
+
+  logMaintenanceScheduled(entry: {
+    organizationId: string;
+    maintenanceId: string;
+    vehicleId: string;
+    createdByUserId: string;
+  }): void {
+    this.log('maintenance_scheduled', {
+      organizationId: entry.organizationId,
+      maintenanceId: entry.maintenanceId,
+      vehicleId: entry.vehicleId,
+      createdByUserId: entry.createdByUserId,
+    });
+  }
+
+  logMaintenanceStarted(entry: {
+    organizationId: string;
+    maintenanceId: string;
+    vehicleId: string;
+    startedByUserId: string;
+  }): void {
+    this.log('maintenance_started', {
+      organizationId: entry.organizationId,
+      maintenanceId: entry.maintenanceId,
+      vehicleId: entry.vehicleId,
+      startedByUserId: entry.startedByUserId,
+    });
+  }
+
+  logMaintenanceCompleted(entry: {
+    organizationId: string;
+    maintenanceId: string;
+    vehicleId: string;
+    completedByUserId: string;
+  }): void {
+    this.log('maintenance_completed', {
+      organizationId: entry.organizationId,
+      maintenanceId: entry.maintenanceId,
+      vehicleId: entry.vehicleId,
+      completedByUserId: entry.completedByUserId,
+    });
+  }
+
+  logMaintenanceCancelled(entry: {
+    organizationId: string;
+    maintenanceId: string;
+    vehicleId: string;
+    cancelledByUserId: string;
+  }): void {
+    this.log('maintenance_cancelled', {
+      organizationId: entry.organizationId,
+      maintenanceId: entry.maintenanceId,
+      vehicleId: entry.vehicleId,
+      cancelledByUserId: entry.cancelledByUserId,
+    });
+  }
+
+  logInspectionCreated(entry: {
+    organizationId: string;
+    inspectionId: string;
+    vehicleId: string;
+    passed: boolean;
+    createdByUserId: string;
+  }): void {
+    this.log('inspection_created', {
+      organizationId: entry.organizationId,
+      inspectionId: entry.inspectionId,
+      vehicleId: entry.vehicleId,
+      passed: String(entry.passed),
+      createdByUserId: entry.createdByUserId,
     });
   }
 
