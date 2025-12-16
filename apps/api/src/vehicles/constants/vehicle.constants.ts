@@ -15,3 +15,7 @@ export function isVehicleAssignable(status: VehicleStatus): boolean {
 export function vehicleStatusMessage(status: VehicleStatus): string {
   return `Vehicle cannot be assigned while status is ${status}`;
 }
+
+export function tripBlockedByMaintenanceMessage(): string {
+  return 'Vehicle cannot start a new trip while in maintenance';
+}
