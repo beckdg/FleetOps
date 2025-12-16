@@ -4,13 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Trip, TripEventType, TripStatus } from '@prisma/client';
+import { Trip, TripEventType, TripStatus, VehicleStatus } from '@prisma/client';
 import { TripResponse } from '@fleetops/shared-types';
 
 import { DriverRepository } from '../drivers/drivers.repository';
 import { FleetAuditService } from '../fleet/fleet-audit.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { UserRepository } from '../users/users.repository';
+import { tripBlockedByMaintenanceMessage } from '../vehicles/constants/vehicle.constants';
 import { VehicleAssignmentRepository } from '../vehicle-assignments/vehicle-assignments.repository';
 import { VehicleRepository } from '../vehicles/vehicles.repository';
 import {
@@ -61,8 +62,13 @@ export class TripService {
       input.organizationId,
     );
 
-    await this.vehicleRepository.requireInOrganization(input.vehicleId, input.organizationId);
     await this.driverRepository.requireInOrganization(input.driverId, input.organizationId);
+
+    const vehicle = await this.vehicleRepository.requireInOrganization(
+      input.vehicleId,
+      input.organizationId,
+    );
+    this.assertVehicleAvailableForTrip(vehicle.status);
 
     await this.assertActiveAssignmentMatches(input);
 
@@ -187,6 +193,12 @@ export class TripService {
   assertAllowedTransition(from: TripStatus, to: TripStatus): void {
     if (!isAllowedTripTransition(from, to)) {
       throw new BadRequestException(transitionErrorMessage(from, to));
+    }
+  }
+
+  assertVehicleAvailableForTrip(status: VehicleStatus): void {
+    if (status === VehicleStatus.IN_MAINTENANCE) {
+      throw new BadRequestException(tripBlockedByMaintenanceMessage());
     }
   }
 
