@@ -15,6 +15,8 @@ export const DEFAULT_PERMISSIONS = [
     action: 'write',
     description: 'Create and update maintenance records',
   },
+  { resource: 'fuel', action: 'read', description: 'Read fuel records and analytics' },
+  { resource: 'fuel', action: 'write', description: 'Create fuel records and stations' },
 ] as const;
 
 export async function seedPermissions(context: SeedContext): Promise<void> {

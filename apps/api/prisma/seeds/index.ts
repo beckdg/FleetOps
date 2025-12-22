@@ -1,6 +1,7 @@
 import type { Seeder } from './types';
 import { seedDemoFleetSetup } from './demo-fleet-setup.seed';
 import { seedDrivers } from './drivers.seed';
+import { seedFuel } from './fuel.seed';
 import { seedInspections } from './inspections.seed';
 import { seedMaintenanceRecords } from './maintenance.seed';
 import { seedOrganizations } from './organizations.seed';
@@ -24,6 +25,7 @@ import { seedVehicles } from './vehicles.seed';
  * 8. trips (demo operational trips)
  * 9. maintenance records
  * 10. inspections
+ * 11. fuel stations and records
  */
 export const seeders: Seeder[] = [
   { name: 'organizations', run: seedOrganizations },
@@ -36,6 +38,7 @@ export const seeders: Seeder[] = [
   { name: 'trips', run: seedTrips },
   { name: 'maintenance', run: seedMaintenanceRecords },
   { name: 'inspections', run: seedInspections },
+  { name: 'fuel', run: seedFuel },
 ];
 
 export async function runSeeders(context: import('./types').SeedContext): Promise<void> {
