@@ -15,7 +15,9 @@ export type FleetAuditEvent =
   | 'maintenance_started'
   | 'maintenance_completed'
   | 'maintenance_cancelled'
-  | 'inspection_created';
+  | 'inspection_created'
+  | 'fuel_record_created'
+  | 'fuel_station_created';
 
 @Injectable()
 export class FleetAuditService {
@@ -228,6 +230,36 @@ export class FleetAuditService {
       vehicleId: entry.vehicleId,
       passed: String(entry.passed),
       createdByUserId: entry.createdByUserId,
+    });
+  }
+
+  logFuelRecordCreated(entry: {
+    organizationId: string;
+    fuelRecordId: string;
+    vehicleId: string;
+    tripId: string | null;
+    totalCost: string;
+    createdByUserId: string;
+  }): void {
+    this.log('fuel_record_created', {
+      organizationId: entry.organizationId,
+      fuelRecordId: entry.fuelRecordId,
+      vehicleId: entry.vehicleId,
+      tripId: entry.tripId ?? '',
+      totalCost: entry.totalCost,
+      createdByUserId: entry.createdByUserId,
+    });
+  }
+
+  logFuelStationCreated(entry: {
+    organizationId: string;
+    fuelStationId: string;
+    name: string;
+  }): void {
+    this.log('fuel_station_created', {
+      organizationId: entry.organizationId,
+      fuelStationId: entry.fuelStationId,
+      name: entry.name,
     });
   }
 
