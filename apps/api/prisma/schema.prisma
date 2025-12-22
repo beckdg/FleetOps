@@ -23,6 +23,8 @@ model Organization {
   trips              Trip[]              @relation("OrganizationTrips")
   maintenanceRecords MaintenanceRecord[] @relation("OrganizationMaintenanceRecords")
   inspections        Inspection[]        @relation("OrganizationInspections")
+  fuelStations       FuelStation[]       @relation("OrganizationFuelStations")
+  fuelRecords        FuelRecord[]        @relation("OrganizationFuelRecords")
 
   @@index([isActive])
   @@map("organizations")
@@ -49,6 +51,7 @@ model User {
   maintenanceRecordsCreated MaintenanceRecord[] @relation("MaintenanceCreatedBy")
   maintenanceEventsCreated  MaintenanceEvent[]  @relation("MaintenanceEventCreatedBy")
   inspectionsCreated        Inspection[]        @relation("InspectionCreatedBy")
+  fuelRecordsCreated        FuelRecord[]        @relation("FuelRecordCreatedBy")
 
   @@unique([organizationId, email], map: "users_organization_id_email_key")
   @@index([organizationId], map: "users_organization_id_idx")
@@ -160,6 +163,7 @@ model Vehicle {
   trips        Trip[]              @relation("VehicleTrips")
   maintenanceRecords MaintenanceRecord[] @relation("VehicleMaintenanceRecords")
   inspections  Inspection[]        @relation("VehicleInspections")
+  fuelRecords  FuelRecord[]        @relation("VehicleFuelRecords")
 
   @@unique([organizationId, plateNumber], map: "vehicles_organization_id_plate_number_key")
   @@index([organizationId], map: "vehicles_organization_id_idx")
@@ -251,6 +255,7 @@ model Trip {
   driver        Driver       @relation("DriverTrips", fields: [driverId], references: [id], onDelete: Restrict)
   createdByUser User         @relation("TripCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
   events        TripEvent[]  @relation("TripEvents")
+  fuelRecords   FuelRecord[] @relation("TripFuelRecords")
 
   @@unique([organizationId, tripNumber], map: "trips_organization_id_trip_number_key")
   @@index([organizationId], map: "trips_organization_id_idx")
@@ -366,4 +371,48 @@ model Inspection {
   @@index([inspectionDate], map: "inspections_inspection_date_idx")
   @@index([passed], map: "inspections_passed_idx")
   @@map("inspections")
+}
+
+model FuelStation {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  location       String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation("OrganizationFuelStations", fields: [organizationId], references: [id], onDelete: Restrict)
+  fuelRecords  FuelRecord[] @relation("FuelStationRecords")
+
+  @@unique([organizationId, name], map: "fuel_stations_organization_id_name_key")
+  @@index([organizationId], map: "fuel_stations_organization_id_idx")
+  @@map("fuel_stations")
+}
+
+model FuelRecord {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  vehicleId        String   @map("vehicle_id") @db.Uuid
+  tripId           String?  @map("trip_id") @db.Uuid
+  fuelStationId    String?  @map("fuel_station_id") @db.Uuid
+  odometerReading  Int      @map("odometer_reading")
+  litersPurchased  Decimal  @map("liters_purchased") @db.Decimal(10, 3)
+  pricePerLiter    Decimal  @map("price_per_liter") @db.Decimal(12, 4)
+  totalCost        Decimal  @map("total_cost") @db.Decimal(12, 2)
+  filledAt         DateTime @map("filled_at")
+  createdByUserId  String   @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  organization  Organization @relation("OrganizationFuelRecords", fields: [organizationId], references: [id], onDelete: Restrict)
+  vehicle       Vehicle      @relation("VehicleFuelRecords", fields: [vehicleId], references: [id], onDelete: Restrict)
+  trip          Trip?        @relation("TripFuelRecords", fields: [tripId], references: [id], onDelete: Restrict)
+  fuelStation   FuelStation? @relation("FuelStationRecords", fields: [fuelStationId], references: [id], onDelete: Restrict)
+  createdByUser User         @relation("FuelRecordCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId], map: "fuel_records_organization_id_idx")
+  @@index([vehicleId], map: "fuel_records_vehicle_id_idx")
+  @@index([vehicleId, filledAt], map: "fuel_records_vehicle_id_filled_at_idx")
+  @@index([tripId], map: "fuel_records_trip_id_idx")
+  @@index([fuelStationId], map: "fuel_records_fuel_station_id_idx")
+  @@index([filledAt], map: "fuel_records_filled_at_idx")
+  @@map("fuel_records")
 }
