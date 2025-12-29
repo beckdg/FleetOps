@@ -25,6 +25,7 @@ model Organization {
   inspections        Inspection[]        @relation("OrganizationInspections")
   fuelStations       FuelStation[]       @relation("OrganizationFuelStations")
   fuelRecords        FuelRecord[]        @relation("OrganizationFuelRecords")
+  notifications      Notification[]      @relation("OrganizationNotifications")
 
   @@index([isActive])
   @@map("organizations")
@@ -52,6 +53,8 @@ model User {
   maintenanceEventsCreated  MaintenanceEvent[]  @relation("MaintenanceEventCreatedBy")
   inspectionsCreated        Inspection[]        @relation("InspectionCreatedBy")
   fuelRecordsCreated        FuelRecord[]        @relation("FuelRecordCreatedBy")
+  notifications             Notification[]      @relation("UserNotifications")
+  notificationPreference    NotificationPreference? @relation("UserNotificationPreferences")
 
   @@unique([organizationId, email], map: "users_organization_id_email_key")
   @@index([organizationId], map: "users_organization_id_idx")
@@ -415,4 +418,52 @@ model FuelRecord {
   @@index([fuelStationId], map: "fuel_records_fuel_station_id_idx")
   @@index([filledAt], map: "fuel_records_filled_at_idx")
   @@map("fuel_records")
+}
+
+enum NotificationType {
+  TRIP_STARTED
+  TRIP_COMPLETED
+  MAINTENANCE_STARTED
+  MAINTENANCE_COMPLETED
+  INSPECTION_FAILED
+  FUEL_RECORD_CREATED
+  SYSTEM
+}
+
+model Notification {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  type           NotificationType
+  title          String
+  message        String
+  readAt         DateTime?        @map("read_at")
+  metadata       Json?
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  organization Organization @relation("OrganizationNotifications", fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation("UserNotifications", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId], map: "notifications_organization_id_idx")
+  @@index([userId], map: "notifications_user_id_idx")
+  @@index([userId, readAt], map: "notifications_user_id_read_at_idx")
+  @@index([type], map: "notifications_type_idx")
+  @@index([createdAt], map: "notifications_created_at_idx")
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                       String   @id @default(uuid()) @db.Uuid
+  userId                   String   @unique @map("user_id") @db.Uuid
+  tripNotifications        Boolean  @default(true) @map("trip_notifications")
+  maintenanceNotifications Boolean  @default(true) @map("maintenance_notifications")
+  inspectionNotifications  Boolean  @default(true) @map("inspection_notifications")
+  fuelNotifications        Boolean  @default(true) @map("fuel_notifications")
+  systemNotifications      Boolean  @default(true) @map("system_notifications")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  user User @relation("UserNotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }
