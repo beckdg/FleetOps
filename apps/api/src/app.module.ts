@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import { DriversModule } from './drivers/drivers.module';
 import { FleetModule } from './fleet/fleet.module';
 import { FuelModule } from './fuel/fuel.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { InspectionsModule } from './inspections/inspections.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
@@ -49,6 +50,7 @@ import { envValidationSchema } from './shared/constants/env.validation';
     MaintenanceModule,
     InspectionsModule,
     FuelModule,
+    NotificationsModule,
     TestProtectedModule,
   ],
 })
