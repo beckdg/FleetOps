@@ -4,6 +4,7 @@ import { seedDrivers } from './drivers.seed';
 import { seedFuel } from './fuel.seed';
 import { seedInspections } from './inspections.seed';
 import { seedMaintenanceRecords } from './maintenance.seed';
+import { seedNotificationPreferences, seedNotifications } from './notifications.seed';
 import { seedOrganizations } from './organizations.seed';
 import { seedPermissions } from './permissions.seed';
 import { seedRolePermissions } from './role-permissions.seed';
@@ -26,6 +27,8 @@ import { seedVehicles } from './vehicles.seed';
  * 9. maintenance records
  * 10. inspections
  * 11. fuel stations and records
+ * 12. notification preferences
+ * 13. notifications
  */
 export const seeders: Seeder[] = [
   { name: 'organizations', run: seedOrganizations },
@@ -39,6 +42,8 @@ export const seeders: Seeder[] = [
   { name: 'maintenance', run: seedMaintenanceRecords },
   { name: 'inspections', run: seedInspections },
   { name: 'fuel', run: seedFuel },
+  { name: 'notification-preferences', run: seedNotificationPreferences },
+  { name: 'notifications', run: seedNotifications },
 ];
 
 export async function runSeeders(context: import('./types').SeedContext): Promise<void> {
