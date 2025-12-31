@@ -17,7 +17,10 @@ export type FleetAuditEvent =
   | 'maintenance_cancelled'
   | 'inspection_created'
   | 'fuel_record_created'
-  | 'fuel_station_created';
+  | 'fuel_station_created'
+  | 'notification_created'
+  | 'notification_read'
+  | 'preferences_updated';
 
 @Injectable()
 export class FleetAuditService {
@@ -260,6 +263,39 @@ export class FleetAuditService {
       organizationId: entry.organizationId,
       fuelStationId: entry.fuelStationId,
       name: entry.name,
+    });
+  }
+
+  logNotificationCreated(entry: {
+    organizationId: string;
+    notificationId: string;
+    userId: string;
+    type: string;
+  }): void {
+    this.log('notification_created', {
+      organizationId: entry.organizationId,
+      notificationId: entry.notificationId,
+      userId: entry.userId,
+      type: entry.type,
+    });
+  }
+
+  logNotificationRead(entry: {
+    organizationId: string;
+    notificationId: string;
+    userId: string;
+  }): void {
+    this.log('notification_read', {
+      organizationId: entry.organizationId,
+      notificationId: entry.notificationId,
+      userId: entry.userId,
+    });
+  }
+
+  logNotificationPreferencesUpdated(entry: { organizationId: string; userId: string }): void {
+    this.log('preferences_updated', {
+      organizationId: entry.organizationId,
+      userId: entry.userId,
     });
   }
 
