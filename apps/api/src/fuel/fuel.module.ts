@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { FleetModule } from '../fleet/fleet.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { TripsModule } from '../trips/trips.module';
 import { UsersModule } from '../users/users.module';
@@ -12,7 +13,14 @@ import { FuelStationRepository } from './fuel-stations.repository';
 import { FuelStationService } from './fuel-stations.service';
 
 @Module({
-  imports: [OrganizationsModule, UsersModule, VehiclesModule, TripsModule, FleetModule],
+  imports: [
+    OrganizationsModule,
+    UsersModule,
+    VehiclesModule,
+    TripsModule,
+    FleetModule,
+    NotificationsModule,
+  ],
   controllers: [FuelController],
   providers: [FuelRecordRepository, FuelStationRepository, FuelRecordService, FuelStationService],
   exports: [FuelRecordService, FuelStationService, FuelRecordRepository, FuelStationRepository],

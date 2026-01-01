@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { FuelRecordResponse, VehicleFuelSummary } from '@fleetops/shared-types';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { TripRepository } from '../trips/trips.repository';
 import { UserRepository } from '../users/users.repository';
@@ -44,6 +45,7 @@ export class FuelRecordService {
     private readonly organizationRepository: OrganizationRepository,
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
+    private readonly notificationEventService: NotificationEventService,
   ) {}
 
   async createFuelRecord(input: CreateFuelRecordInput): Promise<FuelRecordResponse> {
@@ -117,6 +119,8 @@ export class FuelRecordService {
       totalCost: record.totalCost.toString(),
       createdByUserId: input.createdByUserId,
     });
+
+    await this.notificationEventService.onFuelRecordCreated(record, record.createdByUserId);
 
     return toFuelRecordResponse(record);
   }
