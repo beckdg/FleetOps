@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InspectionResponse } from '@fleetops/shared-types';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { UserRepository } from '../users/users.repository';
 import { VehicleRepository } from '../vehicles/vehicles.repository';
@@ -26,6 +27,7 @@ export class InspectionService {
     private readonly organizationRepository: OrganizationRepository,
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
+    private readonly notificationEventService: NotificationEventService,
   ) {}
 
   async createInspection(input: CreateInspectionInput): Promise<InspectionResponse> {
@@ -61,6 +63,13 @@ export class InspectionService {
       passed: inspection.passed,
       createdByUserId: input.createdByUserId,
     });
+
+    if (!inspection.passed) {
+      await this.notificationEventService.onInspectionFailed(
+        inspection,
+        inspection.createdByUserId,
+      );
+    }
 
     return toInspectionResponse(inspection);
   }
