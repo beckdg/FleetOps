@@ -16,6 +16,7 @@ import {
 import { MaintenanceRecordResponse } from '@fleetops/shared-types';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { UserRepository } from '../users/users.repository';
 import { VehicleRepository } from '../vehicles/vehicles.repository';
@@ -59,6 +60,7 @@ export class MaintenanceService {
     private readonly organizationRepository: OrganizationRepository,
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
+    private readonly notificationEventService: NotificationEventService,
   ) {}
 
   async scheduleMaintenance(input: ScheduleMaintenanceInput): Promise<MaintenanceRecordResponse> {
@@ -121,6 +123,8 @@ export class MaintenanceService {
           vehicleId: record.vehicleId,
           startedByUserId: input.actorUserId,
         });
+
+        await this.notificationEventService.onMaintenanceStarted(record, record.createdByUserId);
       },
       { startedAt: new Date() },
     );
@@ -143,6 +147,8 @@ export class MaintenanceService {
           vehicleId: record.vehicleId,
           completedByUserId: input.actorUserId,
         });
+
+        await this.notificationEventService.onMaintenanceCompleted(record, record.createdByUserId);
       },
       {
         completedAt: new Date(),
