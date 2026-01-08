@@ -9,6 +9,7 @@ import { TripResponse } from '@fleetops/shared-types';
 
 import { DriverRepository } from '../drivers/drivers.repository';
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { UserRepository } from '../users/users.repository';
 import { tripBlockedByMaintenanceMessage } from '../vehicles/constants/vehicle.constants';
@@ -53,6 +54,7 @@ export class TripService {
     private readonly organizationRepository: OrganizationRepository,
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
+    private readonly notificationEventService: NotificationEventService,
   ) {}
 
   async createTrip(input: CreateTripInput): Promise<TripResponse> {
@@ -139,13 +141,15 @@ export class TripService {
     return this.transitionTrip(
       input,
       TripStatus.IN_PROGRESS,
-      (trip, actorUserId) => {
+      async (trip, actorUserId) => {
         this.fleetAuditService.logTripStarted({
           organizationId: trip.organizationId,
           tripId: trip.id,
           tripNumber: trip.tripNumber,
           startedByUserId: actorUserId,
         });
+
+        await this.notificationEventService.onTripStarted(trip, trip.createdByUserId);
       },
       { actualStartAt: new Date() },
     );
@@ -155,13 +159,15 @@ export class TripService {
     return this.transitionTrip(
       input,
       TripStatus.COMPLETED,
-      (trip, actorUserId) => {
+      async (trip, actorUserId) => {
         this.fleetAuditService.logTripCompleted({
           organizationId: trip.organizationId,
           tripId: trip.id,
           tripNumber: trip.tripNumber,
           completedByUserId: actorUserId,
         });
+
+        await this.notificationEventService.onTripCompleted(trip, trip.createdByUserId);
       },
       { actualEndAt: new Date() },
     );
@@ -266,7 +272,7 @@ export class TripService {
   private async transitionTrip(
     input: TripActionInput,
     targetStatus: TripStatus,
-    audit: (trip: Trip, actorUserId: string) => void,
+    audit: (trip: Trip, actorUserId: string) => void | Promise<void>,
     timestamps: { actualStartAt?: Date; actualEndAt?: Date } = {},
   ): Promise<TripResponse> {
     await this.userRepository.requireActiveInOrganization(input.actorUserId, input.organizationId);
@@ -296,7 +302,7 @@ export class TripService {
         });
       }
 
-      audit(updated, input.actorUserId);
+      await audit(updated, input.actorUserId);
 
       return toTripResponse(updated);
     } catch (error) {

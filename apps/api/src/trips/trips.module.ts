@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { DriversModule } from '../drivers/drivers.module';
 import { FleetModule } from '../fleet/fleet.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { UsersModule } from '../users/users.module';
 import { VehicleAssignmentsModule } from '../vehicle-assignments/vehicle-assignments.module';
@@ -20,6 +21,7 @@ import { TripsController } from './trips.controller';
     DriversModule,
     VehicleAssignmentsModule,
     FleetModule,
+    NotificationsModule,
   ],
   controllers: [TripsController],
   providers: [TripRepository, TripEventRepository, TripEventService, TripService],
