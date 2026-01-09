@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
 const TABLES = [
+  'notifications',
+  'notification_preferences',
   'fuel_records',
   'fuel_stations',
   'maintenance_events',
