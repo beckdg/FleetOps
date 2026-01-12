@@ -23,6 +23,7 @@ export const DEFAULT_PERMISSIONS = [
     action: 'write',
     description: 'Update notification read state and preferences',
   },
+  { resource: 'reports', action: 'read', description: 'Read operational reports and analytics' },
 ] as const;
 
 export async function seedPermissions(context: SeedContext): Promise<void> {
