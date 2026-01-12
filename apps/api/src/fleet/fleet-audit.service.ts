@@ -20,7 +20,8 @@ export type FleetAuditEvent =
   | 'fuel_station_created'
   | 'notification_created'
   | 'notification_read'
-  | 'preferences_updated';
+  | 'preferences_updated'
+  | 'report_generated';
 
 @Injectable()
 export class FleetAuditService {
@@ -296,6 +297,18 @@ export class FleetAuditService {
     this.log('preferences_updated', {
       organizationId: entry.organizationId,
       userId: entry.userId,
+    });
+  }
+
+  logReportGenerated(entry: {
+    organizationId: string;
+    reportType: string;
+    requestedByUserId: string;
+  }): void {
+    this.log('report_generated', {
+      organizationId: entry.organizationId,
+      reportType: entry.reportType,
+      requestedByUserId: entry.requestedByUserId,
     });
   }
 
