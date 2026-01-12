@@ -13,6 +13,7 @@ import { InspectionsModule } from './inspections/inspections.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { ReportsModule } from './reports/reports.module';
 import { RolesModule } from './roles/roles.module';
 import { TestProtectedModule } from './test-protected/test-protected.module';
 import { UsersModule } from './users/users.module';
@@ -51,6 +52,7 @@ import { envValidationSchema } from './shared/constants/env.validation';
     InspectionsModule,
     FuelModule,
     NotificationsModule,
+    ReportsModule,
     TestProtectedModule,
   ],
 })
