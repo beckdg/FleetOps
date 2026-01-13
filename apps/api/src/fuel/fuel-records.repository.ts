@@ -31,6 +31,27 @@ export class FuelRecordRepository {
     });
   }
 
+  findByOrganizationInDateRange(
+    organizationId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<FuelRecord[]> {
+    return this.prisma.fuelRecord.findMany({
+      where: {
+        organizationId,
+        ...(startDate || endDate
+          ? {
+              filledAt: {
+                ...(startDate ? { gte: startDate } : {}),
+                ...(endDate ? { lte: endDate } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: [{ filledAt: 'desc' }],
+    });
+  }
+
   findByVehicle(organizationId: string, vehicleId: string): Promise<FuelRecord[]> {
     return this.prisma.fuelRecord.findMany({
       where: { organizationId, vehicleId },
