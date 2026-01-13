@@ -52,6 +52,27 @@ export class MaintenanceRecordRepository {
     });
   }
 
+  findByOrganizationInDateRange(
+    organizationId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<MaintenanceRecord[]> {
+    return this.prisma.maintenanceRecord.findMany({
+      where: {
+        organizationId,
+        ...(startDate || endDate
+          ? {
+              scheduledAt: {
+                ...(startDate ? { gte: startDate } : {}),
+                ...(endDate ? { lte: endDate } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: [{ scheduledAt: 'desc' }],
+    });
+  }
+
   findByVehicle(organizationId: string, vehicleId: string): Promise<MaintenanceRecord[]> {
     return this.prisma.maintenanceRecord.findMany({
       where: { organizationId, vehicleId },
