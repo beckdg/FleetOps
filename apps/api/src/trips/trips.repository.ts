@@ -54,6 +54,27 @@ export class TripRepository {
     });
   }
 
+  findByOrganizationInDateRange(
+    organizationId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<Trip[]> {
+    return this.prisma.trip.findMany({
+      where: {
+        organizationId,
+        ...(startDate || endDate
+          ? {
+              scheduledStartAt: {
+                ...(startDate ? { gte: startDate } : {}),
+                ...(endDate ? { lte: endDate } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: [{ scheduledStartAt: 'desc' }],
+    });
+  }
+
   findActiveByOrganization(organizationId: string): Promise<Trip[]> {
     return this.prisma.trip.findMany({
       where: {
