@@ -115,9 +115,10 @@ docker compose up postgres -d
 | ---------------- | ------------------------------ |
 | `pnpm build`     | Build all packages             |
 | `pnpm lint`      | Lint all packages              |
-| `pnpm test`      | Run unit tests                 |
+| `pnpm test`      | Run API unit tests with coverage thresholds |
+| `pnpm test:cov`  | Same as `pnpm test`           |
+| `pnpm test:integration` | Run API integration tests (requires Postgres) |
 | `pnpm test:e2e`  | Run API end-to-end tests       |
-| `pnpm --filter @fleetops/api test:integration` | Run API integration tests (requires Postgres) |
 | `pnpm start:dev` | Start API with hot reload      |
 
 ### Code Quality
@@ -150,16 +151,29 @@ All routes are versioned under `/api/v1`. Future domain modules (vehicles, drive
 
 ## Testing
 
+See **[docs/testing.md](docs/testing.md)** for the full testing guide (coverage thresholds, CI, troubleshooting).
+
 ```bash
-# Unit tests
+# Unit tests (enforces Jest coverage thresholds)
 pnpm test
+
+# Integration tests (Postgres on port 5433 locally; see DATABASE_URL_TEST)
+pnpm test:integration
 
 # End-to-end tests
 pnpm test:e2e
-
-# Integration tests (Postgres on port 5433; see DATABASE_URL_TEST)
-pnpm --filter @fleetops/api test:integration
 ```
+
+### CI quality gates
+
+Pull requests and pushes to `main` / `develop` run [GitHub Actions CI](.github/workflows/ci.yml):
+
+1. **Lint** — ESLint and Prettier
+2. **Build** — shared types, Prisma client, API compile
+3. **Unit tests** — Jest with coverage thresholds; uploads LCOV/Cobertura artifacts
+4. **Integration tests** — full suite against a PostgreSQL 16 service container
+
+Unit tests fail if global coverage drops below the thresholds in `apps/api/jest.config.ts` (currently 18% statements / 16% branches / 12% functions / 17% lines).
 
 ## License
 
