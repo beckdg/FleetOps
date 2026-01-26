@@ -6,31 +6,43 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_ENV: test
+
 jobs:
-  quality:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: fleetops
-          POSTGRES_PASSWORD: fleetops
-          POSTGRES_DB: fleetops_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U fleetops -d fleetops_test"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-    env:
-      NODE_ENV: test
-      PORT: 3000
-      DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
-      DATABASE_URL_TEST: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,23 +65,109 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @fleetops/api prisma:generate
 
-      - name: Apply database migrations
-        run: pnpm --filter @fleetops/api prisma:migrate:deploy
+      - name: Build API
+        run: pnpm --filter @fleetops/api build
 
-      - name: Lint
-        run: pnpm lint
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Format check
-        run: pnpm format:check
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - name: Unit tests
-        run: pnpm test
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @fleetops/shared-types build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @fleetops/api prisma:generate
+
+      - name: Unit tests with coverage
+        run: pnpm --filter @fleetops/api test:cov
+
+      - name: E2E tests
+        run: pnpm --filter @fleetops/api test:e2e
+
+      - name: Upload unit coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-coverage
+          path: |
+            apps/api/coverage/lcov.info
+            apps/api/coverage/coverage-final.json
+            apps/api/coverage/coverage-summary.json
+            apps/api/coverage/cobertura-coverage.xml
+          if-no-files-found: error
+          retention-days: 14
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: build
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fleetops
+          POSTGRES_PASSWORD: fleetops
+          POSTGRES_DB: fleetops_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U fleetops -d fleetops_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+      DATABASE_URL_TEST: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @fleetops/shared-types build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @fleetops/api prisma:generate
+
+      - name: Wait for PostgreSQL
+        run: |
+          for attempt in $(seq 1 30); do
+            if pg_isready -h localhost -p 5432 -U fleetops -d fleetops_test; then
+              echo "PostgreSQL is ready"
+              exit 0
+            fi
+            echo "Waiting for PostgreSQL (attempt ${attempt}/30)..."
+            sleep 2
+          done
+          echo "PostgreSQL did not become ready in time"
+          exit 1
 
       - name: Integration tests
         run: pnpm test:integration
-
-      - name: E2E tests
-        run: pnpm test:e2e
-
-      - name: Build API
-        run: pnpm --filter @fleetops/api build
