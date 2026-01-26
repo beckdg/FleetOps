@@ -101,81 +101,385 @@ describe('Notifications domain (integration)', () => {
     return { organization, actor, vehicle, driver };
   }
 
-  it('generates a notification when a trip starts', async () => {
-    const { organization, actor, vehicle, driver } = await seedContext();
-
-    const trip = await tripService.createTrip({
-      organizationId: organization.id,
-      vehicleId: vehicle.id,
-      driverId: driver.id,
-      tripNumber: 'NTF-TRIP-001',
+  async function createPlannedTrip(
+    organizationId: string,
+    vehicleId: string,
+    driverId: string,
+    actorUserId: string,
+    tripNumber: string,
+  ) {
+    return tripService.createTrip({
+      organizationId,
+      vehicleId,
+      driverId,
+      tripNumber,
       origin: 'Origin',
       destination: 'Destination',
       scheduledStartAt: '2025-06-10T08:00:00.000Z',
       scheduledEndAt: '2025-06-10T12:00:00.000Z',
-      createdByUserId: actor.id,
+      createdByUserId: actorUserId,
+    });
+  }
+
+  async function expectPersistedNotification(
+    organizationId: string,
+    userId: string,
+    type: NotificationType,
+    expected: {
+      title: string;
+      metadata?: Record<string, unknown>;
+    },
+  ) {
+    const stored = await prisma.notification.findMany({
+      where: { organizationId, userId, type },
     });
 
-    await tripService.dispatchTrip({
-      organizationId: organization.id,
-      tripId: trip.id,
-      actorUserId: actor.id,
+    expect(stored).toHaveLength(1);
+    expect(stored[0].title).toBe(expected.title);
+    expect(stored[0].readAt).toBeNull();
+
+    if (expected.metadata) {
+      expect(stored[0].metadata).toMatchObject(expected.metadata);
+    }
+
+    const unread = await notificationService.getUnreadNotifications(organizationId, userId);
+    expect(unread.some((notification) => notification.type === type)).toBe(true);
+
+    return stored[0];
+  }
+
+  describe('notification type generation', () => {
+    it('creates TRIP_STARTED notifications', async () => {
+      const { organization, actor, vehicle, driver } = await seedContext();
+      const trip = await createPlannedTrip(
+        organization.id,
+        vehicle.id,
+        driver.id,
+        actor.id,
+        'NTF-TRIP-START',
+      );
+
+      await tripService.dispatchTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      await tripService.startTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      await expectPersistedNotification(organization.id, actor.id, NotificationType.TRIP_STARTED, {
+        title: 'Trip started',
+        metadata: { tripNumber: 'NTF-TRIP-START', tripId: trip.id },
+      });
     });
 
-    await tripService.startTrip({
-      organizationId: organization.id,
-      tripId: trip.id,
-      actorUserId: actor.id,
+    it('creates TRIP_COMPLETED notifications', async () => {
+      const { organization, actor, vehicle, driver } = await seedContext();
+      const trip = await createPlannedTrip(
+        organization.id,
+        vehicle.id,
+        driver.id,
+        actor.id,
+        'NTF-TRIP-COMPLETE',
+      );
+
+      await tripService.dispatchTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      await tripService.startTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      await tripService.completeTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      await expectPersistedNotification(
+        organization.id,
+        actor.id,
+        NotificationType.TRIP_COMPLETED,
+        {
+          title: 'Trip completed',
+          metadata: { tripNumber: 'NTF-TRIP-COMPLETE', tripId: trip.id },
+        },
+      );
     });
 
-    const unread = await notificationService.getUnreadNotifications(organization.id, actor.id);
+    it('creates MAINTENANCE_STARTED notifications', async () => {
+      const { organization, actor, vehicle } = await seedContext();
 
-    expect(unread).toHaveLength(1);
-    expect(unread[0].type).toBe(NotificationType.TRIP_STARTED);
-    expect(unread[0].metadata?.tripNumber).toBe('NTF-TRIP-001');
+      const maintenance = await maintenanceService.scheduleMaintenance({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        title: 'Brake service',
+        maintenanceType: 'PREVENTIVE',
+        scheduledAt: '2025-06-15T09:00:00.000Z',
+        createdByUserId: actor.id,
+      });
+
+      await maintenanceService.startMaintenance({
+        organizationId: organization.id,
+        maintenanceId: maintenance.id,
+        actorUserId: actor.id,
+      });
+
+      await expectPersistedNotification(
+        organization.id,
+        actor.id,
+        NotificationType.MAINTENANCE_STARTED,
+        {
+          title: 'Maintenance started',
+          metadata: { maintenanceId: maintenance.id, vehicleId: vehicle.id },
+        },
+      );
+    });
+
+    it('creates MAINTENANCE_COMPLETED notifications', async () => {
+      const { organization, actor, vehicle } = await seedContext();
+
+      const maintenance = await maintenanceService.scheduleMaintenance({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        title: 'Oil change',
+        maintenanceType: 'PREVENTIVE',
+        scheduledAt: '2025-06-16T09:00:00.000Z',
+        createdByUserId: actor.id,
+      });
+
+      await maintenanceService.startMaintenance({
+        organizationId: organization.id,
+        maintenanceId: maintenance.id,
+        actorUserId: actor.id,
+      });
+
+      await maintenanceService.completeMaintenance({
+        organizationId: organization.id,
+        maintenanceId: maintenance.id,
+        actorUserId: actor.id,
+        actualCost: '125.00',
+      });
+
+      await expectPersistedNotification(
+        organization.id,
+        actor.id,
+        NotificationType.MAINTENANCE_COMPLETED,
+        {
+          title: 'Maintenance completed',
+          metadata: { maintenanceId: maintenance.id, vehicleId: vehicle.id },
+        },
+      );
+    });
+
+    it('creates INSPECTION_FAILED notifications', async () => {
+      const { organization, actor, vehicle } = await seedContext();
+
+      const inspection = await inspectionService.createInspection({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        inspectionDate: '2025-06-01',
+        passed: false,
+        notes: 'Brake lights failed',
+        inspectorName: 'Safety Inspector',
+        createdByUserId: actor.id,
+      });
+
+      await expectPersistedNotification(
+        organization.id,
+        actor.id,
+        NotificationType.INSPECTION_FAILED,
+        {
+          title: 'Inspection failed',
+          metadata: {
+            inspectionId: inspection.id,
+            vehicleId: vehicle.id,
+            passed: false,
+          },
+        },
+      );
+    });
+
+    it('creates FUEL_RECORD_CREATED notifications', async () => {
+      const { organization, actor, vehicle } = await seedContext();
+
+      const fuelRecord = await fuelRecordService.createFuelRecord({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        odometerReading: 10000,
+        litersPurchased: '50.000',
+        pricePerLiter: '1.8000',
+        filledAt: '2025-06-09T08:00:00.000Z',
+        createdByUserId: actor.id,
+      });
+
+      await expectPersistedNotification(
+        organization.id,
+        actor.id,
+        NotificationType.FUEL_RECORD_CREATED,
+        {
+          title: 'Fuel record created',
+          metadata: {
+            fuelRecordId: fuelRecord.id,
+            vehicleId: vehicle.id,
+            totalCost: fuelRecord.totalCost,
+          },
+        },
+      );
+    });
+
+    it('does not create notifications for passed inspections', async () => {
+      const { organization, actor, vehicle } = await seedContext();
+
+      await inspectionService.createInspection({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        inspectionDate: '2025-06-02',
+        passed: true,
+        inspectorName: 'Safety Inspector',
+        createdByUserId: actor.id,
+      });
+
+      const stored = await prisma.notification.findMany({
+        where: { organizationId: organization.id, userId: actor.id },
+      });
+
+      expect(stored).toHaveLength(0);
+    });
   });
 
-  it('generates a notification when maintenance starts', async () => {
-    const { organization, actor, vehicle } = await seedContext();
+  describe('notification preferences', () => {
+    it('suppresses trip notifications when tripNotifications is disabled', async () => {
+      const { organization, actor, vehicle, driver } = await seedContext();
 
-    const maintenance = await maintenanceService.scheduleMaintenance({
-      organizationId: organization.id,
-      vehicleId: vehicle.id,
-      title: 'Brake service',
-      maintenanceType: 'PREVENTIVE',
-      scheduledAt: '2025-06-15T09:00:00.000Z',
-      createdByUserId: actor.id,
+      await notificationPreferenceService.updatePreferences(organization.id, actor.id, {
+        tripNotifications: false,
+      });
+
+      const trip = await createPlannedTrip(
+        organization.id,
+        vehicle.id,
+        driver.id,
+        actor.id,
+        'NTF-TRIP-SUPPRESSED',
+      );
+
+      await tripService.dispatchTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      await tripService.startTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      await tripService.completeTrip({
+        organizationId: organization.id,
+        tripId: trip.id,
+        actorUserId: actor.id,
+      });
+
+      const stored = await prisma.notification.findMany({
+        where: { organizationId: organization.id, userId: actor.id },
+      });
+
+      expect(stored).toHaveLength(0);
     });
 
-    await maintenanceService.startMaintenance({
-      organizationId: organization.id,
-      maintenanceId: maintenance.id,
-      actorUserId: actor.id,
+    it('suppresses maintenance notifications when maintenanceNotifications is disabled', async () => {
+      const { organization, actor, vehicle } = await seedContext();
+
+      await notificationPreferenceService.updatePreferences(organization.id, actor.id, {
+        maintenanceNotifications: false,
+      });
+
+      const maintenance = await maintenanceService.scheduleMaintenance({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        title: 'Oil change',
+        maintenanceType: 'PREVENTIVE',
+        scheduledAt: '2025-06-16T09:00:00.000Z',
+        createdByUserId: actor.id,
+      });
+
+      await maintenanceService.startMaintenance({
+        organizationId: organization.id,
+        maintenanceId: maintenance.id,
+        actorUserId: actor.id,
+      });
+
+      await maintenanceService.completeMaintenance({
+        organizationId: organization.id,
+        maintenanceId: maintenance.id,
+        actorUserId: actor.id,
+      });
+
+      const stored = await prisma.notification.findMany({
+        where: { organizationId: organization.id, userId: actor.id },
+      });
+
+      expect(stored).toHaveLength(0);
     });
 
-    const unread = await notificationService.getUnreadNotifications(organization.id, actor.id);
+    it('suppresses inspection notifications when inspectionNotifications is disabled', async () => {
+      const { organization, actor, vehicle } = await seedContext();
 
-    expect(unread).toHaveLength(1);
-    expect(unread[0].type).toBe(NotificationType.MAINTENANCE_STARTED);
-  });
+      await notificationPreferenceService.updatePreferences(organization.id, actor.id, {
+        inspectionNotifications: false,
+      });
 
-  it('generates a notification when an inspection fails', async () => {
-    const { organization, actor, vehicle } = await seedContext();
+      await inspectionService.createInspection({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        inspectionDate: '2025-06-01',
+        passed: false,
+        notes: 'Tires worn',
+        inspectorName: 'Safety Inspector',
+        createdByUserId: actor.id,
+      });
 
-    await inspectionService.createInspection({
-      organizationId: organization.id,
-      vehicleId: vehicle.id,
-      inspectionDate: '2025-06-01',
-      passed: false,
-      notes: 'Brake lights failed',
-      inspectorName: 'Safety Inspector',
-      createdByUserId: actor.id,
+      const stored = await prisma.notification.findMany({
+        where: { organizationId: organization.id, userId: actor.id },
+      });
+
+      expect(stored).toHaveLength(0);
     });
 
-    const unread = await notificationService.getUnreadNotifications(organization.id, actor.id);
+    it('suppresses fuel notifications when fuelNotifications is disabled', async () => {
+      const { organization, actor, vehicle } = await seedContext();
 
-    expect(unread).toHaveLength(1);
-    expect(unread[0].type).toBe(NotificationType.INSPECTION_FAILED);
+      await notificationPreferenceService.updatePreferences(organization.id, actor.id, {
+        fuelNotifications: false,
+      });
+
+      await fuelRecordService.createFuelRecord({
+        organizationId: organization.id,
+        vehicleId: vehicle.id,
+        odometerReading: 10000,
+        litersPurchased: '50.000',
+        pricePerLiter: '1.8000',
+        filledAt: '2025-06-09T08:00:00.000Z',
+        createdByUserId: actor.id,
+      });
+
+      const stored = await prisma.notification.findMany({
+        where: { organizationId: organization.id, userId: actor.id },
+      });
+
+      expect(stored).toHaveLength(0);
+    });
   });
 
   it('supports read and unread workflow', async () => {
@@ -237,51 +541,5 @@ describe('Notifications domain (integration)', () => {
       actor.id,
     );
     expect(unreadAfterAll).toHaveLength(0);
-  });
-
-  it('respects notification preferences when generating alerts', async () => {
-    const { organization, actor, vehicle } = await seedContext();
-
-    await notificationPreferenceService.updatePreferences(organization.id, actor.id, {
-      maintenanceNotifications: false,
-    });
-
-    const maintenance = await maintenanceService.scheduleMaintenance({
-      organizationId: organization.id,
-      vehicleId: vehicle.id,
-      title: 'Oil change',
-      maintenanceType: 'PREVENTIVE',
-      scheduledAt: '2025-06-16T09:00:00.000Z',
-      createdByUserId: actor.id,
-    });
-
-    await maintenanceService.startMaintenance({
-      organizationId: organization.id,
-      maintenanceId: maintenance.id,
-      actorUserId: actor.id,
-    });
-
-    const unread = await notificationService.getUnreadNotifications(organization.id, actor.id);
-
-    expect(unread).toHaveLength(0);
-  });
-
-  it('generates a notification when a fuel record is created', async () => {
-    const { organization, actor, vehicle } = await seedContext();
-
-    await fuelRecordService.createFuelRecord({
-      organizationId: organization.id,
-      vehicleId: vehicle.id,
-      odometerReading: 10000,
-      litersPurchased: '50.000',
-      pricePerLiter: '1.8000',
-      filledAt: '2025-06-09T08:00:00.000Z',
-      createdByUserId: actor.id,
-    });
-
-    const unread = await notificationService.getUnreadNotifications(organization.id, actor.id);
-
-    expect(unread).toHaveLength(1);
-    expect(unread[0].type).toBe(NotificationType.FUEL_RECORD_CREATED);
   });
 });
