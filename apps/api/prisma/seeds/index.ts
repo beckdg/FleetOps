@@ -3,6 +3,7 @@ import { seedDemoFleetSetup } from './demo-fleet-setup.seed';
 import { seedDrivers } from './drivers.seed';
 import { seedFuel } from './fuel.seed';
 import { seedInspections } from './inspections.seed';
+import { seedIntegrations } from './integrations.seed';
 import { seedMaintenanceRecords } from './maintenance.seed';
 import { seedNotificationPreferences, seedNotifications } from './notifications.seed';
 import { seedOrganizations } from './organizations.seed';
@@ -29,6 +30,7 @@ import { seedVehicles } from './vehicles.seed';
  * 11. fuel stations and records
  * 12. notification preferences
  * 13. notifications
+ * 14. integrations (API keys and webhooks)
  */
 export const seeders: Seeder[] = [
   { name: 'organizations', run: seedOrganizations },
@@ -44,6 +46,7 @@ export const seeders: Seeder[] = [
   { name: 'fuel', run: seedFuel },
   { name: 'notification-preferences', run: seedNotificationPreferences },
   { name: 'notifications', run: seedNotifications },
+  { name: 'integrations', run: seedIntegrations },
 ];
 
 export async function runSeeders(context: import('./types').SeedContext): Promise<void> {
