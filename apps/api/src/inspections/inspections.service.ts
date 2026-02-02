@@ -2,6 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InspectionResponse } from '@fleetops/shared-types';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { WEBHOOK_EVENT_TYPES } from '../integrations/constants/integrations.constants';
+import { WebhookPublisherService } from '../integrations/webhook-publisher.service';
 import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { UserRepository } from '../users/users.repository';
@@ -28,6 +30,7 @@ export class InspectionService {
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
     private readonly notificationEventService: NotificationEventService,
+    private readonly webhookPublisherService: WebhookPublisherService,
   ) {}
 
   async createInspection(input: CreateInspectionInput): Promise<InspectionResponse> {
@@ -68,6 +71,18 @@ export class InspectionService {
       await this.notificationEventService.onInspectionFailed(
         inspection,
         inspection.createdByUserId,
+      );
+
+      await this.webhookPublisherService.publish(
+        inspection.organizationId,
+        WEBHOOK_EVENT_TYPES.INSPECTION_FAILED,
+        {
+          inspectionId: inspection.id,
+          vehicleId: inspection.vehicleId,
+          passed: inspection.passed,
+          notes: inspection.notes,
+          inspectorName: inspection.inspectorName,
+        },
       );
     }
 
