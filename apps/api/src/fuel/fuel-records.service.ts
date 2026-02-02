@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { FuelRecordResponse, VehicleFuelSummary } from '@fleetops/shared-types';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { WEBHOOK_EVENT_TYPES } from '../integrations/constants/integrations.constants';
+import { WebhookPublisherService } from '../integrations/webhook-publisher.service';
 import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { TripRepository } from '../trips/trips.repository';
@@ -46,6 +48,7 @@ export class FuelRecordService {
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
     private readonly notificationEventService: NotificationEventService,
+    private readonly webhookPublisherService: WebhookPublisherService,
   ) {}
 
   async createFuelRecord(input: CreateFuelRecordInput): Promise<FuelRecordResponse> {
@@ -121,6 +124,19 @@ export class FuelRecordService {
     });
 
     await this.notificationEventService.onFuelRecordCreated(record, record.createdByUserId);
+
+    await this.webhookPublisherService.publish(
+      record.organizationId,
+      WEBHOOK_EVENT_TYPES.FUEL_RECORD_CREATED,
+      {
+        fuelRecordId: record.id,
+        vehicleId: record.vehicleId,
+        tripId: record.tripId,
+        totalCost: record.totalCost.toString(),
+        litersPurchased: record.litersPurchased.toString(),
+        filledAt: record.filledAt.toISOString(),
+      },
+    );
 
     return toFuelRecordResponse(record);
   }

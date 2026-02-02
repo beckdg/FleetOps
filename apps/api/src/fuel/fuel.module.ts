@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { FleetModule } from '../fleet/fleet.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { TripsModule } from '../trips/trips.module';
@@ -20,6 +21,7 @@ import { FuelStationService } from './fuel-stations.service';
     TripsModule,
     FleetModule,
     NotificationsModule,
+    IntegrationsModule,
   ],
   controllers: [FuelController],
   providers: [FuelRecordRepository, FuelStationRepository, FuelRecordService, FuelStationService],
