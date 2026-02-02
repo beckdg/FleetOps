@@ -21,7 +21,13 @@ export type FleetAuditEvent =
   | 'notification_created'
   | 'notification_read'
   | 'preferences_updated'
-  | 'report_generated';
+  | 'report_generated'
+  | 'api_key_created'
+  | 'api_key_revoked'
+  | 'webhook_created'
+  | 'webhook_updated'
+  | 'webhook_delivery_success'
+  | 'webhook_delivery_failed';
 
 @Injectable()
 export class FleetAuditService {
@@ -309,6 +315,90 @@ export class FleetAuditService {
       organizationId: entry.organizationId,
       reportType: entry.reportType,
       requestedByUserId: entry.requestedByUserId,
+    });
+  }
+
+  logApiKeyCreated(entry: {
+    organizationId: string;
+    apiKeyId: string;
+    name: string;
+    createdByUserId: string;
+  }): void {
+    this.log('api_key_created', {
+      organizationId: entry.organizationId,
+      apiKeyId: entry.apiKeyId,
+      name: entry.name,
+      createdByUserId: entry.createdByUserId,
+    });
+  }
+
+  logApiKeyRevoked(entry: {
+    organizationId: string;
+    apiKeyId: string;
+    revokedByUserId: string;
+  }): void {
+    this.log('api_key_revoked', {
+      organizationId: entry.organizationId,
+      apiKeyId: entry.apiKeyId,
+      revokedByUserId: entry.revokedByUserId,
+    });
+  }
+
+  logWebhookCreated(entry: {
+    organizationId: string;
+    webhookEndpointId: string;
+    name: string;
+    createdByUserId: string;
+  }): void {
+    this.log('webhook_created', {
+      organizationId: entry.organizationId,
+      webhookEndpointId: entry.webhookEndpointId,
+      name: entry.name,
+      createdByUserId: entry.createdByUserId,
+    });
+  }
+
+  logWebhookUpdated(entry: {
+    organizationId: string;
+    webhookEndpointId: string;
+    updatedByUserId: string;
+  }): void {
+    this.log('webhook_updated', {
+      organizationId: entry.organizationId,
+      webhookEndpointId: entry.webhookEndpointId,
+      updatedByUserId: entry.updatedByUserId,
+    });
+  }
+
+  logWebhookDeliverySuccess(entry: {
+    organizationId: string;
+    webhookEndpointId: string;
+    webhookEventId: string;
+    deliveryId: string;
+    attemptNumber: number;
+  }): void {
+    this.log('webhook_delivery_success', {
+      organizationId: entry.organizationId,
+      webhookEndpointId: entry.webhookEndpointId,
+      webhookEventId: entry.webhookEventId,
+      deliveryId: entry.deliveryId,
+      attemptNumber: String(entry.attemptNumber),
+    });
+  }
+
+  logWebhookDeliveryFailed(entry: {
+    organizationId: string;
+    webhookEndpointId: string;
+    webhookEventId: string;
+    deliveryId: string;
+    attemptNumber: number;
+  }): void {
+    this.log('webhook_delivery_failed', {
+      organizationId: entry.organizationId,
+      webhookEndpointId: entry.webhookEndpointId,
+      webhookEventId: entry.webhookEventId,
+      deliveryId: entry.deliveryId,
+      attemptNumber: String(entry.attemptNumber),
     });
   }
 
