@@ -16,6 +16,8 @@ import {
 import { MaintenanceRecordResponse } from '@fleetops/shared-types';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { WEBHOOK_EVENT_TYPES } from '../integrations/constants/integrations.constants';
+import { WebhookPublisherService } from '../integrations/webhook-publisher.service';
 import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { UserRepository } from '../users/users.repository';
@@ -61,6 +63,7 @@ export class MaintenanceService {
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
     private readonly notificationEventService: NotificationEventService,
+    private readonly webhookPublisherService: WebhookPublisherService,
   ) {}
 
   async scheduleMaintenance(input: ScheduleMaintenanceInput): Promise<MaintenanceRecordResponse> {
@@ -125,6 +128,12 @@ export class MaintenanceService {
         });
 
         await this.notificationEventService.onMaintenanceStarted(record, record.createdByUserId);
+
+        await this.webhookPublisherService.publish(
+          record.organizationId,
+          WEBHOOK_EVENT_TYPES.MAINTENANCE_STARTED,
+          this.buildMaintenanceWebhookPayload(record),
+        );
       },
       { startedAt: new Date() },
     );
@@ -149,6 +158,12 @@ export class MaintenanceService {
         });
 
         await this.notificationEventService.onMaintenanceCompleted(record, record.createdByUserId);
+
+        await this.webhookPublisherService.publish(
+          record.organizationId,
+          WEBHOOK_EVENT_TYPES.MAINTENANCE_COMPLETED,
+          this.buildMaintenanceWebhookPayload(record),
+        );
       },
       {
         completedAt: new Date(),
@@ -301,5 +316,15 @@ export class MaintenanceService {
       newStatus: status,
       changedByUserId: actorUserId,
     });
+  }
+
+  private buildMaintenanceWebhookPayload(record: MaintenanceRecord): Record<string, unknown> {
+    return {
+      maintenanceId: record.id,
+      vehicleId: record.vehicleId,
+      title: record.title,
+      maintenanceType: record.maintenanceType,
+      status: record.status,
+    };
   }
 }
