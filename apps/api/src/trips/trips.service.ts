@@ -9,6 +9,8 @@ import { TripResponse } from '@fleetops/shared-types';
 
 import { DriverRepository } from '../drivers/drivers.repository';
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { WEBHOOK_EVENT_TYPES } from '../integrations/constants/integrations.constants';
+import { WebhookPublisherService } from '../integrations/webhook-publisher.service';
 import { NotificationEventService } from '../notifications/notification-events.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { UserRepository } from '../users/users.repository';
@@ -55,6 +57,7 @@ export class TripService {
     private readonly userRepository: UserRepository,
     private readonly fleetAuditService: FleetAuditService,
     private readonly notificationEventService: NotificationEventService,
+    private readonly webhookPublisherService: WebhookPublisherService,
   ) {}
 
   async createTrip(input: CreateTripInput): Promise<TripResponse> {
@@ -116,6 +119,12 @@ export class TripService {
         createdByUserId: input.createdByUserId,
       });
 
+      await this.webhookPublisherService.publish(
+        trip.organizationId,
+        WEBHOOK_EVENT_TYPES.TRIP_CREATED,
+        this.buildTripWebhookPayload(trip),
+      );
+
       return toTripResponse(trip);
     } catch (error) {
       if (this.tripRepository.isUniqueConstraintError(error)) {
@@ -150,6 +159,12 @@ export class TripService {
         });
 
         await this.notificationEventService.onTripStarted(trip, trip.createdByUserId);
+
+        await this.webhookPublisherService.publish(
+          trip.organizationId,
+          WEBHOOK_EVENT_TYPES.TRIP_STARTED,
+          this.buildTripWebhookPayload(trip),
+        );
       },
       { actualStartAt: new Date() },
     );
@@ -168,6 +183,12 @@ export class TripService {
         });
 
         await this.notificationEventService.onTripCompleted(trip, trip.createdByUserId);
+
+        await this.webhookPublisherService.publish(
+          trip.organizationId,
+          WEBHOOK_EVENT_TYPES.TRIP_COMPLETED,
+          this.buildTripWebhookPayload(trip),
+        );
       },
       { actualEndAt: new Date() },
     );
@@ -312,5 +333,17 @@ export class TripService {
 
       throw error;
     }
+  }
+
+  private buildTripWebhookPayload(trip: Trip): Record<string, unknown> {
+    return {
+      tripId: trip.id,
+      tripNumber: trip.tripNumber,
+      vehicleId: trip.vehicleId,
+      driverId: trip.driverId,
+      status: trip.status,
+      origin: trip.origin,
+      destination: trip.destination,
+    };
   }
 }
