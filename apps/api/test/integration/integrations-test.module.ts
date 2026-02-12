@@ -7,14 +7,12 @@ import { DatabaseModule } from '../../src/database/database.module';
 import { DriversModule } from '../../src/drivers/drivers.module';
 import { FleetModule } from '../../src/fleet/fleet.module';
 import { FuelModule } from '../../src/fuel/fuel.module';
-import { HealthModule } from '../../src/health/health.module';
 import { InspectionsModule } from '../../src/inspections/inspections.module';
-import { MaintenanceModule } from '../../src/maintenance/maintenance.module';
 import { IntegrationsModule } from '../../src/integrations/integrations.module';
+import { MaintenanceModule } from '../../src/maintenance/maintenance.module';
 import { NotificationsModule } from '../../src/notifications/notifications.module';
 import { OrganizationsModule } from '../../src/organizations/organizations.module';
 import { PermissionsModule } from '../../src/permissions/permissions.module';
-import { ReportsModule } from '../../src/reports/reports.module';
 import { RolesModule } from '../../src/roles/roles.module';
 import { TripsModule } from '../../src/trips/trips.module';
 import { UsersModule } from '../../src/users/users.module';
@@ -22,10 +20,6 @@ import { VehicleAssignmentsModule } from '../../src/vehicle-assignments/vehicle-
 import { VehiclesModule } from '../../src/vehicles/vehicles.module';
 import { envValidationSchema } from '../../src/shared/constants/env.validation';
 
-/**
- * Full NestJS application module for HTTP integration tests.
- * Includes production controllers only (no test-protected routes).
- */
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -40,11 +34,8 @@ import { envValidationSchema } from '../../src/shared/constants/env.validation';
       },
     }),
     DatabaseModule,
-    HealthModule,
     OrganizationsModule,
     PermissionsModule,
-    AuthModule,
-    AuthorizationModule,
     UsersModule,
     RolesModule,
     FleetModule,
@@ -57,7 +48,8 @@ import { envValidationSchema } from '../../src/shared/constants/env.validation';
     FuelModule,
     NotificationsModule,
     IntegrationsModule,
-    ReportsModule,
+    AuthModule,
+    AuthorizationModule,
   ],
 })
-export class HttpAppModule {}
+export class IntegrationsTestModule {}
