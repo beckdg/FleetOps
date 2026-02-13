@@ -131,9 +131,19 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     env:
       DATABASE_URL: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
       DATABASE_URL_TEST: postgresql://fleetops:fleetops@localhost:5432/fleetops_test?schema=public
+      REDIS_URL: redis://localhost:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4
