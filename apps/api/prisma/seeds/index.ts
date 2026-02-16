@@ -5,6 +5,7 @@ import { seedFuel } from './fuel.seed';
 import { seedInspections } from './inspections.seed';
 import { seedIntegrations } from './integrations.seed';
 import { seedMaintenanceRecords } from './maintenance.seed';
+import { seedReminderDemoData } from './reminder-demo.seed';
 import { seedNotificationPreferences, seedNotifications } from './notifications.seed';
 import { seedOrganizations } from './organizations.seed';
 import { seedPermissions } from './permissions.seed';
@@ -31,6 +32,7 @@ import { seedVehicles } from './vehicles.seed';
  * 12. notification preferences
  * 13. notifications
  * 14. integrations (API keys and webhooks)
+ * 15. reminder demo data (expiring license + upcoming maintenance)
  */
 export const seeders: Seeder[] = [
   { name: 'organizations', run: seedOrganizations },
@@ -47,6 +49,7 @@ export const seeders: Seeder[] = [
   { name: 'notification-preferences', run: seedNotificationPreferences },
   { name: 'notifications', run: seedNotifications },
   { name: 'integrations', run: seedIntegrations },
+  { name: 'reminder-demo', run: seedReminderDemoData },
 ];
 
 export async function runSeeders(context: import('./types').SeedContext): Promise<void> {

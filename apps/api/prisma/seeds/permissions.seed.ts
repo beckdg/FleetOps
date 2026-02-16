@@ -34,6 +34,8 @@ export const DEFAULT_PERMISSIONS = [
     action: 'write',
     description: 'Manage API keys and webhook endpoints',
   },
+  { resource: 'jobs', action: 'read', description: 'Read background jobs and queue health' },
+  { resource: 'jobs', action: 'write', description: 'Enqueue background jobs' },
 ] as const;
 
 export async function seedPermissions(context: SeedContext): Promise<void> {
