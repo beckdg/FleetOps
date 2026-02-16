@@ -29,6 +29,7 @@ model Organization {
   apiKeys              ApiKey[]            @relation("OrganizationApiKeys")
   webhookEndpoints     WebhookEndpoint[]   @relation("OrganizationWebhookEndpoints")
   webhookEvents        WebhookEvent[]      @relation("OrganizationWebhookEvents")
+  jobs                 Job[]               @relation("OrganizationJobs")
 
   @@index([isActive])
   @@map("organizations")
@@ -552,4 +553,44 @@ model WebhookDelivery {
   @@index([webhookEventId], map: "webhook_deliveries_webhook_event_id_idx")
   @@index([status], map: "webhook_deliveries_status_idx")
   @@map("webhook_deliveries")
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum JobType {
+  WEBHOOK_DELIVERY
+  NOTIFICATION
+  LICENSE_EXPIRY_REMINDER
+  MAINTENANCE_REMINDER
+  REPORT_GENERATION
+}
+
+model Job {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  type           JobType
+  status         JobStatus @default(PENDING)
+  attemptCount   Int       @default(0) @map("attempt_count")
+  payload        Json
+  result         Json?
+  failureReason  String?   @map("failure_reason")
+  bullJobId      String?   @map("bull_job_id")
+  queueName      String    @map("queue_name")
+  startedAt      DateTime? @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation("OrganizationJobs", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status], map: "jobs_organization_id_status_idx")
+  @@index([type], map: "jobs_type_idx")
+  @@index([queueName], map: "jobs_queue_name_idx")
+  @@index([createdAt], map: "jobs_created_at_idx")
+  @@map("jobs")
 }
