@@ -8,6 +8,7 @@ import { DriversModule } from './drivers/drivers.module';
 import { FleetModule } from './fleet/fleet.module';
 import { FuelModule } from './fuel/fuel.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { QueueModule } from './queues/queue.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { InspectionsModule } from './inspections/inspections.module';
@@ -54,6 +55,7 @@ import { envValidationSchema } from './shared/constants/env.validation';
     FuelModule,
     NotificationsModule,
     IntegrationsModule,
+    QueueModule,
     ReportsModule,
     TestProtectedModule,
   ],
