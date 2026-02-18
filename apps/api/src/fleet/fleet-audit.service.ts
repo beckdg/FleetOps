@@ -27,7 +27,10 @@ export type FleetAuditEvent =
   | 'webhook_created'
   | 'webhook_updated'
   | 'webhook_delivery_success'
-  | 'webhook_delivery_failed';
+  | 'webhook_delivery_failed'
+  | 'job_created'
+  | 'job_completed'
+  | 'job_failed';
 
 @Injectable()
 export class FleetAuditService {
@@ -399,6 +402,50 @@ export class FleetAuditService {
       webhookEventId: entry.webhookEventId,
       deliveryId: entry.deliveryId,
       attemptNumber: String(entry.attemptNumber),
+    });
+  }
+
+  logJobCreated(entry: {
+    organizationId: string;
+    jobId: string;
+    jobType: string;
+    queueName: string;
+  }): void {
+    this.log('job_created', {
+      organizationId: entry.organizationId,
+      jobId: entry.jobId,
+      jobType: entry.jobType,
+      queueName: entry.queueName,
+    });
+  }
+
+  logJobCompleted(entry: {
+    organizationId: string;
+    jobId: string;
+    jobType: string;
+    attemptCount: number;
+  }): void {
+    this.log('job_completed', {
+      organizationId: entry.organizationId,
+      jobId: entry.jobId,
+      jobType: entry.jobType,
+      attemptCount: String(entry.attemptCount),
+    });
+  }
+
+  logJobFailed(entry: {
+    organizationId: string;
+    jobId: string;
+    jobType: string;
+    attemptCount: number;
+    failureReason: string;
+  }): void {
+    this.log('job_failed', {
+      organizationId: entry.organizationId,
+      jobId: entry.jobId,
+      jobType: entry.jobType,
+      attemptCount: String(entry.attemptCount),
+      failureReason: entry.failureReason,
     });
   }
 
