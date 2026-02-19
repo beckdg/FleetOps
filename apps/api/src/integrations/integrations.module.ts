@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 import { FleetModule } from '../fleet/fleet.module';
+import { QueueModule } from '../queues/queue.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { UsersModule } from '../users/users.module';
 import { ApiKeyRepository } from './api-keys.repository';
@@ -17,7 +18,7 @@ import { WebhookEventRepository } from './webhook-events.repository';
 import { WebhookPublisherService } from './webhook-publisher.service';
 
 @Module({
-  imports: [OrganizationsModule, UsersModule, FleetModule],
+  imports: [OrganizationsModule, UsersModule, FleetModule, forwardRef(() => QueueModule)],
   controllers: [IntegrationsController],
   providers: [
     ApiKeyRepository,
@@ -35,6 +36,12 @@ import { WebhookPublisherService } from './webhook-publisher.service';
       useExisting: FetchWebhookHttpClient,
     },
   ],
-  exports: [WebhookPublisherService, ApiKeyService, ApiKeyGuard, ApiKeyRepository],
+  exports: [
+    WebhookPublisherService,
+    WebhookDeliveryService,
+    ApiKeyService,
+    ApiKeyGuard,
+    ApiKeyRepository,
+  ],
 })
 export class IntegrationsModule {}

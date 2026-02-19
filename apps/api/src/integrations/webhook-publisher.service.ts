@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, WebhookEvent } from '@prisma/client';
 
 import { WebhookEventType } from './constants/integrations.constants';
+import { WebhookDeliveryQueueService } from '../queues/webhook-delivery-queue.service';
 import { WebhookDeliveryRepository } from './webhook-deliveries.repository';
-import { WebhookDeliveryService } from './webhook-delivery.service';
 import { WebhookEndpointRepository } from './webhook-endpoints.repository';
 import { WebhookEventRepository } from './webhook-events.repository';
 
@@ -12,7 +12,7 @@ export class WebhookPublisherService {
   constructor(
     private readonly webhookEventRepository: WebhookEventRepository,
     private readonly webhookEndpointRepository: WebhookEndpointRepository,
-    private readonly webhookDeliveryService: WebhookDeliveryService,
+    private readonly webhookDeliveryQueueService: WebhookDeliveryQueueService,
     private readonly webhookDeliveryRepository: WebhookDeliveryRepository,
   ) {}
 
@@ -31,7 +31,11 @@ export class WebhookPublisherService {
 
     await Promise.all(
       endpoints.map((endpoint) =>
-        this.webhookDeliveryService.deliverWithRetries(endpoint.id, event.id),
+        this.webhookDeliveryQueueService.enqueueDelivery({
+          organizationId,
+          webhookEndpointId: endpoint.id,
+          webhookEventId: event.id,
+        }),
       ),
     );
 
