@@ -80,3 +80,29 @@ export function fuelRecordCreatedNotificationContent(totalCost: string): {
     message: `A fuel purchase of ${totalCost} was recorded.`,
   };
 }
+
+export function licenseExpiryReminderNotificationContent(
+  driverName: string,
+  licenseExpiryDate: Date,
+): {
+  title: string;
+  message: string;
+} {
+  return {
+    title: 'Driver license expiring soon',
+    message: `${driverName}'s license expires on ${licenseExpiryDate.toISOString().slice(0, 10)}.`,
+  };
+}
+
+export function upcomingMaintenanceReminderNotificationContent(
+  title: string,
+  scheduledAt: Date,
+): {
+  title: string;
+  message: string;
+} {
+  return {
+    title: 'Upcoming maintenance reminder',
+    message: `Maintenance "${title}" is scheduled for ${scheduledAt.toISOString().slice(0, 10)}.`,
+  };
+}
