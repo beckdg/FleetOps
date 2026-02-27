@@ -11,6 +11,7 @@ import { HealthModule } from '../../src/health/health.module';
 import { InspectionsModule } from '../../src/inspections/inspections.module';
 import { MaintenanceModule } from '../../src/maintenance/maintenance.module';
 import { IntegrationsModule } from '../../src/integrations/integrations.module';
+import { QueueModule } from '../../src/queues/queue.module';
 import { NotificationsModule } from '../../src/notifications/notifications.module';
 import { OrganizationsModule } from '../../src/organizations/organizations.module';
 import { PermissionsModule } from '../../src/permissions/permissions.module';
@@ -57,6 +58,7 @@ import { envValidationSchema } from '../../src/shared/constants/env.validation';
     FuelModule,
     NotificationsModule,
     IntegrationsModule,
+    QueueModule,
     ReportsModule,
   ],
 })

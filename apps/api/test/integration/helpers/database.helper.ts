@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 const TABLES = [
+  'jobs',
   'webhook_deliveries',
   'webhook_events',
   'webhook_endpoints',
