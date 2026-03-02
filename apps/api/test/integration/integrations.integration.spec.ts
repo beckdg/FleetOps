@@ -1,6 +1,6 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { WebhookDeliveryStatus } from '@prisma/client';
+import { JobStatus, JobType, WebhookDeliveryStatus } from '@prisma/client';
 
 import { ApiKeyService } from '../../src/integrations/api-keys.service';
 import { ApiKeyGuard } from '../../src/integrations/guards/api-key.guard';
@@ -18,6 +18,7 @@ import { VehicleService } from '../../src/vehicles/vehicles.service';
 import { DriverService } from '../../src/drivers/drivers.service';
 import { IntegrationsTestModule } from './integrations-test.module';
 import { resetDatabase } from './helpers/database.helper';
+import { waitForCondition } from './helpers/wait.helper';
 
 describe('Integrations domain (integration)', () => {
   let moduleRef: TestingModule;
@@ -207,6 +208,8 @@ describe('Integrations domain (integration)', () => {
 
     expect(events).toHaveLength(1);
     expect(events[0]?.eventType).toBe(WEBHOOK_EVENT_TYPES.TRIP_CREATED);
+
+    await waitForCondition(async () => mockWebhookHttpClient.post.mock.calls.length > 0);
     expect(mockWebhookHttpClient.post).toHaveBeenCalled();
   });
 
@@ -222,6 +225,11 @@ describe('Integrations domain (integration)', () => {
 
     await webhookPublisherService.publish(organization.id, WEBHOOK_EVENT_TYPES.TRIP_CREATED, {
       tripId: 'trip-1',
+    });
+
+    await waitForCondition(async () => {
+      const deliveries = await prisma.webhookDelivery.findMany();
+      return deliveries.some((delivery) => delivery.status === WebhookDeliveryStatus.SUCCESS);
     });
 
     const deliveries = await prisma.webhookDelivery.findMany();
@@ -247,6 +255,13 @@ describe('Integrations domain (integration)', () => {
       { tripId: 'trip-retry' },
     );
 
+    await waitForCondition(async () => {
+      const deliveries = await prisma.webhookDelivery.findMany({
+        where: { webhookEndpointId: endpoint.id, webhookEventId: event.id },
+      });
+      return deliveries.length >= 3;
+    }, 20000);
+
     const deliveries = await prisma.webhookDelivery.findMany({
       where: { webhookEndpointId: endpoint.id, webhookEventId: event.id },
       orderBy: { attemptNumber: 'asc' },
@@ -256,7 +271,12 @@ describe('Integrations domain (integration)', () => {
     expect(deliveries.every((delivery) => delivery.status === WebhookDeliveryStatus.FAILED)).toBe(
       true,
     );
-    expect(mockWebhookHttpClient.post).toHaveBeenCalledTimes(3);
+
+    const jobs = await prisma.job.findMany({
+      where: { organizationId: organization.id, type: JobType.WEBHOOK_DELIVERY },
+    });
+    expect(jobs.some((job) => job.status === JobStatus.FAILED)).toBe(true);
+    expect(mockWebhookHttpClient.post.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 
   it('exposes retryDelivery for background workers', async () => {

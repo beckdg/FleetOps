@@ -18,6 +18,7 @@ import { TripsModule } from '../../src/trips/trips.module';
 import { UsersModule } from '../../src/users/users.module';
 import { VehicleAssignmentsModule } from '../../src/vehicle-assignments/vehicle-assignments.module';
 import { VehiclesModule } from '../../src/vehicles/vehicles.module';
+import { QueueModule } from '../../src/queues/queue.module';
 import { envValidationSchema } from '../../src/shared/constants/env.validation';
 
 @Module({
@@ -48,6 +49,7 @@ import { envValidationSchema } from '../../src/shared/constants/env.validation';
     FuelModule,
     NotificationsModule,
     IntegrationsModule,
+    QueueModule,
     AuthModule,
     AuthorizationModule,
   ],
