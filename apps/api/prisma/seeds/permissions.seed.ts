@@ -36,6 +36,8 @@ export const DEFAULT_PERMISSIONS = [
   },
   { resource: 'jobs', action: 'read', description: 'Read background jobs and queue health' },
   { resource: 'jobs', action: 'write', description: 'Enqueue background jobs' },
+  { resource: 'audit', action: 'read', description: 'Export audit logs' },
+  { resource: 'metrics', action: 'read', description: 'Read operational metrics' },
 ] as const;
 
 export async function seedPermissions(context: SeedContext): Promise<void> {
