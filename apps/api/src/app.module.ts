@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { InspectionsModule } from './inspections/inspections.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
+import { OperationsModule } from './operations/operations.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { ReportsModule } from './reports/reports.module';
@@ -57,6 +58,7 @@ import { envValidationSchema } from './shared/constants/env.validation';
     IntegrationsModule,
     QueueModule,
     ReportsModule,
+    OperationsModule,
     TestProtectedModule,
   ],
 })
