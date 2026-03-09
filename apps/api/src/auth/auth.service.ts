@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+import { AccountLockoutService } from '../operations/lockout/account-lockout.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { RoleRepository } from '../roles/roles.repository';
 import { RoleService } from '../roles/roles.service';
@@ -40,6 +41,7 @@ export class AuthService {
     private readonly roleService: RoleService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<EnvironmentVariables, true>,
+    private readonly accountLockoutService: AccountLockoutService,
   ) {}
 
   async register(input: RegisterDto): Promise<AuthTokensResponseDto> {
@@ -117,6 +119,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const lockout = this.accountLockoutService.evaluate(user);
+
+    if (lockout.isLocked) {
+      throw new UnauthorizedException('Account is temporarily locked due to failed login attempts');
+    }
+
     if (!user.isActive) {
       throw new UnauthorizedException('User account is inactive');
     }
@@ -124,6 +132,7 @@ export class AuthService {
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatches) {
+      await this.accountLockoutService.recordFailedAttempt(user.id);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -160,6 +169,8 @@ export class AuthService {
   }
 
   private async issueTokenPair(user: User): Promise<AuthTokenPair> {
+    await this.accountLockoutService.resetAttempts(user.id);
+
     const roleIds = await this.roleRepository.findRoleIdsByUserId(user.id);
     const accessToken = await this.createAccessToken(user, roleIds);
     const refreshToken = await this.createRefreshToken(user.id);

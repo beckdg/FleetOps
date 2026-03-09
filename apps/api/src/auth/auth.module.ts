@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
+import { AccountLockoutModule } from '../operations/lockout/account-lockout.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { RolesModule } from '../roles/roles.module';
 import { UsersModule } from '../users/users.module';
@@ -30,6 +31,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     OrganizationsModule,
     UsersModule,
     RolesModule,
+    AccountLockoutModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -41,6 +43,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       useClass: JwtAuthGuard,
     },
   ],
-  exports: [AuthService, JwtModule, PassportModule],
+  exports: [AuthService, AuthRepository, JwtModule, PassportModule],
 })
 export class AuthModule {}

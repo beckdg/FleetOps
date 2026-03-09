@@ -43,4 +43,14 @@ export class AuthRepository {
       },
     });
   }
+
+  deleteExpiredRefreshTokens(beforeDate: Date): Promise<number> {
+    return this.prisma.refreshToken
+      .deleteMany({
+        where: {
+          OR: [{ expiresAt: { lt: beforeDate } }, { revokedAt: { lt: beforeDate } }],
+        },
+      })
+      .then((result) => result.count);
+  }
 }
