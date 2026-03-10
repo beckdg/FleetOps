@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DriverStatus, VehicleStatus } from '@prisma/client';
 
+import { AuditEventStore } from '../operations/audit/audit-event.store';
+import { RequestContextService } from '../operations/request-context/request-context.service';
+
 export type FleetAuditEvent =
   | 'vehicle_status_changed'
   | 'driver_status_changed'
@@ -35,6 +38,11 @@ export type FleetAuditEvent =
 @Injectable()
 export class FleetAuditService {
   private readonly logger = new Logger('FleetAudit');
+
+  constructor(
+    private readonly auditEventStore: AuditEventStore,
+    private readonly requestContextService: RequestContextService,
+  ) {}
 
   logVehicleStatusChanged(entry: {
     organizationId: string;
@@ -450,6 +458,10 @@ export class FleetAuditService {
   }
 
   private log(event: FleetAuditEvent, payload: Record<string, string>): void {
-    this.logger.log(JSON.stringify({ event, ...payload }));
+    const requestId = this.requestContextService.getRequestId();
+    const enrichedPayload = requestId ? { ...payload, requestId } : payload;
+
+    this.auditEventStore.append(event, payload, requestId);
+    this.logger.log(JSON.stringify({ event, ...enrichedPayload }));
   }
 }
