@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 import { FleetModule } from '../fleet/fleet.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
@@ -18,10 +18,10 @@ import { FuelStationService } from './fuel-stations.service';
     OrganizationsModule,
     UsersModule,
     VehiclesModule,
-    TripsModule,
+    forwardRef(() => TripsModule),
     FleetModule,
     NotificationsModule,
-    IntegrationsModule,
+    forwardRef(() => IntegrationsModule),
   ],
   controllers: [FuelController],
   providers: [FuelRecordRepository, FuelStationRepository, FuelRecordService, FuelStationService],
