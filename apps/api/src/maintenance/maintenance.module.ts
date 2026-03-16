@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 import { FleetModule } from '../fleet/fleet.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
@@ -19,7 +19,7 @@ import { MaintenanceController } from './maintenance.controller';
     VehiclesModule,
     FleetModule,
     NotificationsModule,
-    IntegrationsModule,
+    forwardRef(() => IntegrationsModule),
   ],
   controllers: [MaintenanceController],
   providers: [
