@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 
 import { FleetModule } from '../fleet/fleet.module';
+import { MetricsModule } from '../operations/metrics/metrics.module';
 import { QueueModule } from '../queues/queue.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { UsersModule } from '../users/users.module';
@@ -18,7 +19,13 @@ import { WebhookEventRepository } from './webhook-events.repository';
 import { WebhookPublisherService } from './webhook-publisher.service';
 
 @Module({
-  imports: [OrganizationsModule, UsersModule, FleetModule, forwardRef(() => QueueModule)],
+  imports: [
+    OrganizationsModule,
+    UsersModule,
+    FleetModule,
+    MetricsModule,
+    forwardRef(() => QueueModule),
+  ],
   controllers: [IntegrationsController],
   providers: [
     ApiKeyRepository,

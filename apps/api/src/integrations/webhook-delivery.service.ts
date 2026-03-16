@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { WebhookDelivery, WebhookDeliveryStatus } from '@prisma/client';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { MetricsService } from '../operations/metrics/metrics.service';
 import { isFinalFailedAttempt, shouldRetryDelivery } from './constants/webhook-retry.constants';
 import { WEBHOOK_SIGNATURE_HEADER } from './constants/integrations.constants';
 import { WEBHOOK_HTTP_CLIENT, WebhookHttpClient } from './interfaces/webhook-http-client.interface';
@@ -26,6 +27,7 @@ export class WebhookDeliveryService {
     private readonly webhookEndpointRepository: WebhookEndpointRepository,
     private readonly webhookEventRepository: WebhookEventRepository,
     private readonly fleetAuditService: FleetAuditService,
+    private readonly metricsService: MetricsService,
     @Inject(WEBHOOK_HTTP_CLIENT)
     private readonly webhookHttpClient: WebhookHttpClient,
   ) {}
@@ -171,6 +173,7 @@ export class WebhookDeliveryService {
         deliveryId: delivery.id,
         attemptNumber: input.attemptNumber,
       });
+      this.metricsService.recordWebhookDelivery(true);
     } else if (isFinalFailedAttempt(input.attemptNumber)) {
       this.fleetAuditService.logWebhookDeliveryFailed({
         organizationId: input.organizationId,
@@ -179,6 +182,7 @@ export class WebhookDeliveryService {
         deliveryId: delivery.id,
         attemptNumber: input.attemptNumber,
       });
+      this.metricsService.recordWebhookDelivery(false);
     }
 
     return delivery;

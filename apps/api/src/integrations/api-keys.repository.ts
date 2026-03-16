@@ -73,4 +73,16 @@ export class ApiKeyRepository {
       (error as { code: string }).code === 'P2002'
     );
   }
+
+  revokeExpiredKeys(referenceDate: Date): Promise<number> {
+    return this.prisma.apiKey
+      .updateMany({
+        where: {
+          isActive: true,
+          expiresAt: { lt: referenceDate },
+        },
+        data: { isActive: false },
+      })
+      .then((result) => result.count);
+  }
 }

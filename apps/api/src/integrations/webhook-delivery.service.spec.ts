@@ -19,6 +19,9 @@ describe('WebhookDeliveryService', () => {
     logWebhookDeliverySuccess: jest.fn(),
     logWebhookDeliveryFailed: jest.fn(),
   } as unknown as FleetAuditService;
+  const metricsService = {
+    recordWebhookDelivery: jest.fn(),
+  };
   const webhookHttpClient = {
     post: jest.fn(),
   };
@@ -33,6 +36,7 @@ describe('WebhookDeliveryService', () => {
       webhookEndpointRepository as never,
       webhookEventRepository as never,
       fleetAuditService,
+      metricsService as never,
       webhookHttpClient,
     );
   });
