@@ -1,12 +1,10 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module, forwardRef } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-
-import { EnvironmentVariables } from '../shared/constants/env.validation';
 import { FleetModule } from '../fleet/fleet.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 import { MaintenanceModule } from '../maintenance/maintenance.module';
+import { MetricsModule } from '../operations/metrics/metrics.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { ReportsModule } from '../reports/reports.module';
@@ -21,7 +19,7 @@ import { MaintenanceRemindersProcessor } from './processors/maintenance-reminder
 import { NotificationsProcessor } from './processors/notifications.processor';
 import { ReportGenerationProcessor } from './processors/report-generation.processor';
 import { WebhookDeliveryProcessor } from './processors/webhook-delivery.processor';
-import { QueueHealthService } from './queue-health.service';
+import { QueueHealthModule } from './queue-health.module';
 import { ReminderGenerationService } from './reminder-generation.service';
 import { ReportGenerationQueueService } from './report-generation-queue.service';
 import { DailyReminderScheduler } from './schedulers/daily-reminder.scheduler';
@@ -30,15 +28,7 @@ import { WebhookDeliveryQueueService } from './webhook-delivery-queue.service';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService<EnvironmentVariables, true>) => ({
-        connection: {
-          url: configService.get('REDIS_URL', { infer: true }),
-        },
-      }),
-    }),
+    QueueHealthModule,
     BullModule.registerQueue(
       { name: QUEUE_NAMES.WEBHOOK_DELIVERY },
       { name: QUEUE_NAMES.NOTIFICATIONS },
@@ -47,11 +37,12 @@ import { WebhookDeliveryQueueService } from './webhook-delivery-queue.service';
     ),
     OrganizationsModule,
     FleetModule,
+    MetricsModule,
     RolesModule,
     forwardRef(() => IntegrationsModule),
     NotificationsModule,
-    MaintenanceModule,
-    ReportsModule,
+    forwardRef(() => MaintenanceModule),
+    forwardRef(() => ReportsModule),
   ],
   controllers: [JobsController],
   providers: [
@@ -61,7 +52,6 @@ import { WebhookDeliveryQueueService } from './webhook-delivery-queue.service';
     NotificationQueueService,
     MaintenanceReminderQueueService,
     ReportGenerationQueueService,
-    QueueHealthService,
     ReminderGenerationService,
     DailyReminderScheduler,
     WebhookDeliveryProcessor,
@@ -70,12 +60,14 @@ import { WebhookDeliveryQueueService } from './webhook-delivery-queue.service';
     ReportGenerationProcessor,
   ],
   exports: [
+    JobRepository,
     JobService,
     WebhookDeliveryQueueService,
     NotificationQueueService,
     MaintenanceReminderQueueService,
     ReportGenerationQueueService,
     ReminderGenerationService,
+    QueueHealthModule,
   ],
 })
 export class QueueModule {}

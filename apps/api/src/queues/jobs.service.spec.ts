@@ -22,6 +22,10 @@ describe('JobService state transitions', () => {
     logJobCompleted: jest.fn(),
     logJobFailed: jest.fn(),
   } as unknown as FleetAuditService;
+  const metricsService = {
+    recordJobCompleted: jest.fn(),
+    recordJobFailed: jest.fn(),
+  };
 
   let service: JobService;
 
@@ -31,6 +35,7 @@ describe('JobService state transitions', () => {
       jobRepository as never,
       organizationRepository as never,
       fleetAuditService,
+      metricsService as never,
     );
   });
 

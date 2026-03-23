@@ -86,4 +86,15 @@ export class JobRepository {
       orderBy: [{ createdAt: 'desc' }],
     });
   }
+
+  deleteCompletedBefore(beforeDate: Date): Promise<number> {
+    return this.prisma.job
+      .deleteMany({
+        where: {
+          status: JobStatus.COMPLETED,
+          completedAt: { lt: beforeDate },
+        },
+      })
+      .then((result) => result.count);
+  }
 }

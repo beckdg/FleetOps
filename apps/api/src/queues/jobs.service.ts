@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Job, JobStatus, JobType, Prisma } from '@prisma/client';
 
 import { FleetAuditService } from '../fleet/fleet-audit.service';
+import { MetricsService } from '../operations/metrics/metrics.service';
 import { OrganizationRepository } from '../organizations/organizations.repository';
 import { CreateJobRecordInput } from './constants/job.constants';
 import { JobRepository } from './jobs.repository';
@@ -12,6 +13,7 @@ export class JobService {
     private readonly jobRepository: JobRepository,
     private readonly organizationRepository: OrganizationRepository,
     private readonly fleetAuditService: FleetAuditService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async createJobRecord(input: CreateJobRecordInput): Promise<Job> {
@@ -46,6 +48,7 @@ export class JobService {
       jobType: job.type,
       attemptCount: job.attemptCount,
     });
+    this.metricsService.recordJobCompleted();
 
     return job;
   }
@@ -60,6 +63,7 @@ export class JobService {
       attemptCount: job.attemptCount,
       failureReason,
     });
+    this.metricsService.recordJobFailed();
 
     return job;
   }
