@@ -4,44 +4,79 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Injectable,
   Logger,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
+
+import { REQUEST_ID_HEADER } from '../../operations/constants/operations.constants';
+import { MetricsService } from '../../operations/metrics/metrics.service';
+import { RequestContextService } from '../../operations/request-context/request-context.service';
+import { RequestWithId } from '../../operations/request-context/request-id.util';
 
 interface ErrorResponse {
   statusCode: number;
   message: string | string[];
   code?: string;
+  requestId?: string;
   timestamp: string;
   path: string;
 }
 
+@Injectable()
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
 
+  constructor(
+    private readonly requestContextService: RequestContextService,
+    private readonly metricsService: MetricsService,
+  ) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<RequestWithId>();
 
     const { statusCode, message, code } = this.resolveException(exception);
+    const requestId = request.requestId ?? this.requestContextService.getRequestId();
+
+    if (requestId) {
+      response.setHeader(REQUEST_ID_HEADER, requestId);
+    }
 
     const errorResponse: ErrorResponse = {
       statusCode,
       message,
       code,
+      requestId,
       timestamp: new Date().toISOString(),
       path: request.url,
     };
 
+    this.metricsService.recordRequest(false);
+
     if (statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        `${request.method} ${request.url}`,
+        JSON.stringify({
+          requestId,
+          method: request.method,
+          path: request.url,
+          statusCode,
+          message,
+        }),
         exception instanceof Error ? exception.stack : String(exception),
       );
     } else {
-      this.logger.warn(`${request.method} ${request.url} - ${statusCode}: ${message}`);
+      this.logger.warn(
+        JSON.stringify({
+          requestId,
+          method: request.method,
+          path: request.url,
+          statusCode,
+          message,
+        }),
+      );
     }
 
     response.status(statusCode).json(errorResponse);

@@ -1,8 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 
 import { API_GLOBAL_PREFIX } from '../constants/app.constants';
-import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
-import { LoggingInterceptor } from '../interceptors/logging.interceptor';
 
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix(API_GLOBAL_PREFIX);
@@ -17,7 +15,4 @@ export function configureApp(app: INestApplication): void {
       },
     }),
   );
-
-  app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor());
 }
