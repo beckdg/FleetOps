@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 import { DriversModule } from '../drivers/drivers.module';
 import { FleetModule } from '../fleet/fleet.module';
@@ -23,7 +23,7 @@ import { TripsController } from './trips.controller';
     VehicleAssignmentsModule,
     FleetModule,
     NotificationsModule,
-    IntegrationsModule,
+    forwardRef(() => IntegrationsModule),
   ],
   controllers: [TripsController],
   providers: [TripRepository, TripEventRepository, TripEventService, TripService],
