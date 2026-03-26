@@ -107,4 +107,30 @@ export class UserRepository {
   isNotFoundError(error: unknown): boolean {
     return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
   }
+
+  incrementFailedLoginAttempts(userId: string): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        failedLoginAttempts: { increment: 1 },
+      },
+    });
+  }
+
+  setLockedUntil(userId: string, lockedUntil: Date): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { lockedUntil },
+    });
+  }
+
+  resetLoginLockout(userId: string): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+  }
 }
