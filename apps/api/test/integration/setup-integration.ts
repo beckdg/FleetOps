@@ -17,3 +17,7 @@ if (!process.env.DATABASE_URL) {
 if (!process.env.REDIS_URL) {
   process.env.REDIS_URL = 'redis://localhost:6379';
 }
+
+process.env.RATE_LIMIT_AUTH_LIMIT ??= '1000';
+process.env.RATE_LIMIT_API_KEY_LIMIT ??= '1000';
+process.env.RATE_LIMIT_WEBHOOK_LIMIT ??= '1000';

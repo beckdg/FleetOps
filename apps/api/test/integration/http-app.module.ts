@@ -11,6 +11,7 @@ import { HealthModule } from '../../src/health/health.module';
 import { InspectionsModule } from '../../src/inspections/inspections.module';
 import { MaintenanceModule } from '../../src/maintenance/maintenance.module';
 import { IntegrationsModule } from '../../src/integrations/integrations.module';
+import { OperationsModule } from '../../src/operations/operations.module';
 import { QueueModule } from '../../src/queues/queue.module';
 import { NotificationsModule } from '../../src/notifications/notifications.module';
 import { OrganizationsModule } from '../../src/organizations/organizations.module';
@@ -60,6 +61,7 @@ import { envValidationSchema } from '../../src/shared/constants/env.validation';
     IntegrationsModule,
     QueueModule,
     ReportsModule,
+    OperationsModule,
   ],
 })
 export class HttpAppModule {}
