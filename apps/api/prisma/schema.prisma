@@ -67,6 +67,7 @@ model User {
   @@index([organizationId], map: "users_organization_id_idx")
   @@index([deletedAt], map: "users_deleted_at_idx")
   @@index([isActive], map: "users_is_active_idx")
+  @@index([lockedUntil], map: "users_locked_until_idx")
   @@map("users")
 }
 
@@ -138,6 +139,7 @@ model RefreshToken {
   user User @relation("UserRefreshTokens", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "refresh_tokens_user_id_idx")
+  @@index([tokenHash], map: "refresh_tokens_token_hash_idx")
   @@index([expiresAt], map: "refresh_tokens_expires_at_idx")
   @@index([revokedAt], map: "refresh_tokens_revoked_at_idx")
   @@map("refresh_tokens")
