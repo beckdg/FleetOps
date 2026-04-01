@@ -25,6 +25,33 @@ import { VehicleAssignmentsModule } from './vehicle-assignments/vehicle-assignme
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { envValidationSchema } from './shared/constants/env.validation';
 
+const coreModules = [
+  DatabaseModule,
+  HealthModule,
+  OrganizationsModule,
+  PermissionsModule,
+  AuthModule,
+  AuthorizationModule,
+  UsersModule,
+  RolesModule,
+  FleetModule,
+  VehiclesModule,
+  DriversModule,
+  VehicleAssignmentsModule,
+  TripsModule,
+  MaintenanceModule,
+  InspectionsModule,
+  FuelModule,
+  NotificationsModule,
+  IntegrationsModule,
+  QueueModule,
+  ReportsModule,
+  OperationsModule,
+] as const;
+
+const nonProductionModules =
+  process.env.NODE_ENV === 'production' ? [] : ([TestProtectedModule] as const);
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,28 +65,8 @@ import { envValidationSchema } from './shared/constants/env.validation';
         allowUnknown: true,
       },
     }),
-    DatabaseModule,
-    HealthModule,
-    OrganizationsModule,
-    PermissionsModule,
-    AuthModule,
-    AuthorizationModule,
-    UsersModule,
-    RolesModule,
-    FleetModule,
-    VehiclesModule,
-    DriversModule,
-    VehicleAssignmentsModule,
-    TripsModule,
-    MaintenanceModule,
-    InspectionsModule,
-    FuelModule,
-    NotificationsModule,
-    IntegrationsModule,
-    QueueModule,
-    ReportsModule,
-    OperationsModule,
-    TestProtectedModule,
+    ...coreModules,
+    ...nonProductionModules,
   ],
 })
 export class AppModule {}
