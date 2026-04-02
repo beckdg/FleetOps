@@ -44,6 +44,23 @@ export class AuthRepository {
     });
   }
 
+  rotateRefreshToken(storedTokenId: string, data: CreateRefreshTokenData): Promise<RefreshToken> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.refreshToken.update({
+        where: { id: storedTokenId },
+        data: { revokedAt: new Date() },
+      });
+
+      return tx.refreshToken.create({
+        data: {
+          userId: data.userId,
+          tokenHash: data.tokenHash,
+          expiresAt: data.expiresAt,
+        },
+      });
+    });
+  }
+
   deleteExpiredRefreshTokens(beforeDate: Date): Promise<number> {
     return this.prisma.refreshToken
       .deleteMany({

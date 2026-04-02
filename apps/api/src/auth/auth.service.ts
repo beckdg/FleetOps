@@ -84,9 +84,25 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    await this.authRepository.revokeRefreshToken(storedToken.id);
+    const { rawToken, tokenHash: newTokenHash } = generateRefreshToken();
+    const refreshExpiresIn = this.configService.get('JWT_REFRESH_EXPIRES_IN', { infer: true });
+    const expiresAt = addDurationToDate(new Date(), refreshExpiresIn);
 
-    return this.issueTokenPair(user);
+    await this.authRepository.rotateRefreshToken(storedToken.id, {
+      userId: user.id,
+      tokenHash: newTokenHash,
+      expiresAt,
+    });
+
+    await this.accountLockoutService.resetAttempts(user.id);
+
+    const roleIds = await this.roleRepository.findRoleIdsByUserId(user.id);
+    const accessToken = await this.createAccessToken(user, roleIds);
+
+    return {
+      accessToken,
+      refreshToken: rawToken,
+    };
   }
 
   async logout(refreshToken: string): Promise<void> {
