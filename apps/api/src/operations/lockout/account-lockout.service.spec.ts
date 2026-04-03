@@ -2,8 +2,7 @@ import { AccountLockoutService } from './account-lockout.service';
 
 describe('AccountLockoutService', () => {
   const userRepository = {
-    incrementFailedLoginAttempts: jest.fn(),
-    setLockedUntil: jest.fn(),
+    recordFailedLoginAttempt: jest.fn(),
     resetLoginLockout: jest.fn(),
   };
   const configService = {
@@ -57,12 +56,7 @@ describe('AccountLockoutService', () => {
   });
 
   it('locks account after reaching max failed attempts', async () => {
-    userRepository.incrementFailedLoginAttempts.mockResolvedValue({
-      id: 'user-1',
-      failedLoginAttempts: 5,
-      lockedUntil: null,
-    });
-    userRepository.setLockedUntil.mockResolvedValue({
+    userRepository.recordFailedLoginAttempt.mockResolvedValue({
       id: 'user-1',
       failedLoginAttempts: 5,
       lockedUntil: new Date('2030-01-01T00:00:00.000Z'),
@@ -70,7 +64,7 @@ describe('AccountLockoutService', () => {
 
     const evaluation = await service.recordFailedAttempt('user-1');
 
-    expect(userRepository.setLockedUntil).toHaveBeenCalledWith('user-1', expect.any(Date));
+    expect(userRepository.recordFailedLoginAttempt).toHaveBeenCalledWith('user-1', 5, 15);
     expect(evaluation.isLocked).toBe(true);
   });
 

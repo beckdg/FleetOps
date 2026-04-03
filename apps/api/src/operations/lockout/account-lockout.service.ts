@@ -37,24 +37,18 @@ export class AccountLockoutService {
     const maxAttempts = this.configService.get('ACCOUNT_LOCKOUT_MAX_ATTEMPTS', { infer: true });
     const lockMinutes = this.configService.get('ACCOUNT_LOCKOUT_DURATION_MINUTES', { infer: true });
 
-    const user = await this.userRepository.incrementFailedLoginAttempts(userId);
-    const attempts = user.failedLoginAttempts;
+    const user = await this.userRepository.recordFailedLoginAttempt(
+      userId,
+      maxAttempts,
+      lockMinutes,
+    );
 
-    if (attempts >= maxAttempts) {
-      const lockedUntil = new Date(Date.now() + lockMinutes * 60_000);
-      const lockedUser = await this.userRepository.setLockedUntil(userId, lockedUntil);
-
-      return {
-        isLocked: true,
-        lockedUntil: lockedUser.lockedUntil,
-        failedAttempts: lockedUser.failedLoginAttempts,
-      };
-    }
+    const isLocked = user.lockedUntil !== null && user.lockedUntil.getTime() > Date.now();
 
     return {
-      isLocked: false,
+      isLocked,
       lockedUntil: user.lockedUntil,
-      failedAttempts: attempts,
+      failedAttempts: user.failedLoginAttempts,
     };
   }
 

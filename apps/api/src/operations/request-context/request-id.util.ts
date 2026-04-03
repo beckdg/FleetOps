@@ -1,8 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Request } from 'express';
 
-import { REQUEST_ID_HEADER } from '../constants/operations.constants';
-
 export type RequestWithId = Request & { requestId?: string };
 
 export function resolveRequestId(headerValue: string | string[] | undefined): string {
@@ -13,8 +11,4 @@ export function resolveRequestId(headerValue: string | string[] | undefined): st
   }
 
   return randomUUID();
-}
-
-export function getRequestIdHeaderName(): string {
-  return REQUEST_ID_HEADER;
 }
