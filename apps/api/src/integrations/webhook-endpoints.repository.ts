@@ -66,12 +66,20 @@ export class WebhookEndpointRepository {
     organizationId: string,
     data: UpdateWebhookEndpointData,
   ): Promise<WebhookEndpoint> {
-    return this.requireByIdInOrganization(id, organizationId).then(() =>
-      this.prisma.webhookEndpoint.update({
-        where: { id },
+    return this.prisma.webhookEndpoint
+      .updateMany({
+        where: { id, organizationId },
         data,
-      }),
-    );
+      })
+      .then(async (result) => {
+        if (result.count === 0) {
+          throw new NotFoundException(`Webhook endpoint ${id} not found`);
+        }
+
+        return this.prisma.webhookEndpoint.findFirstOrThrow({
+          where: { id, organizationId },
+        });
+      });
   }
 
   isUniqueConstraintError(error: unknown): boolean {

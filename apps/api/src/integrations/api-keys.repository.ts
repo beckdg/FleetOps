@@ -43,16 +43,18 @@ export class ApiKeyRepository {
 
   revoke(id: string, organizationId: string): Promise<ApiKey> {
     return this.prisma.apiKey
-      .update({
-        where: { id },
+      .updateMany({
+        where: { id, organizationId },
         data: { isActive: false },
       })
-      .then(async (apiKey) => {
-        if (apiKey.organizationId !== organizationId) {
+      .then(async (result) => {
+        if (result.count === 0) {
           throw new NotFoundException(`API key ${id} not found`);
         }
 
-        return apiKey;
+        return this.prisma.apiKey.findFirstOrThrow({
+          where: { id, organizationId },
+        });
       });
   }
 
