@@ -117,6 +117,32 @@ export class UserRepository {
     });
   }
 
+  recordFailedLoginAttempt(
+    userId: string,
+    maxAttempts: number,
+    lockDurationMinutes: number,
+  ): Promise<User> {
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: {
+          failedLoginAttempts: { increment: 1 },
+        },
+      });
+
+      if (user.failedLoginAttempts < maxAttempts) {
+        return user;
+      }
+
+      return tx.user.update({
+        where: { id: userId },
+        data: {
+          lockedUntil: new Date(Date.now() + lockDurationMinutes * 60_000),
+        },
+      });
+    });
+  }
+
   setLockedUntil(userId: string, lockedUntil: Date): Promise<User> {
     return this.prisma.user.update({
       where: { id: userId },
