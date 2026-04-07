@@ -79,6 +79,17 @@ API base path: `http://localhost:3000/api/v1`
 
 Health check: `http://localhost:3000/api/v1/health`
 
+## Demo credentials
+
+After running `pnpm --filter @fleetops/api prisma:seed`, the demo organization `fleetops-demo` includes:
+
+| User | Email | Password | Role |
+| ---- | ----- | -------- | ---- |
+| Demo admin | `admin@fleetops-demo.test` | `DemoPassword123!` | `admin` (all permissions) |
+| Demo dispatcher | `dispatcher@fleetops-demo.test` | `DemoPassword123!` | *(no role — operational demo user only)* |
+
+Login via `POST /api/v1/auth/login` with `organizationSlug: "fleetops-demo"`.
+
 ## Environment Variables
 
 | Variable                 | Description                          | Default       |
