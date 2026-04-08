@@ -4,6 +4,8 @@ import { DEMO_ORGANIZATION_SLUG } from './organizations.seed';
 import type { SeedContext } from './types';
 
 export const DEMO_DISPATCHER_EMAIL = 'dispatcher@fleetops-demo.test';
+export const DEMO_ADMIN_EMAIL = 'admin@fleetops-demo.test';
+export const DEMO_USER_PASSWORD = 'DemoPassword123!';
 
 export async function seedDemoFleetSetup(context: SeedContext): Promise<void> {
   const organization = await context.prisma.organization.findUnique({
@@ -15,7 +17,56 @@ export async function seedDemoFleetSetup(context: SeedContext): Promise<void> {
     return;
   }
 
-  const passwordHash = await bcrypt.hash('DemoPassword123!', 12);
+  const passwordHash = await bcrypt.hash(DEMO_USER_PASSWORD, 12);
+
+  const admin = await context.prisma.user.upsert({
+    where: {
+      organizationId_email: {
+        organizationId: organization.id,
+        email: DEMO_ADMIN_EMAIL,
+      },
+    },
+    update: {
+      firstName: 'Demo',
+      lastName: 'Admin',
+      isActive: true,
+      passwordHash,
+    },
+    create: {
+      organizationId: organization.id,
+      email: DEMO_ADMIN_EMAIL,
+      passwordHash,
+      firstName: 'Demo',
+      lastName: 'Admin',
+    },
+  });
+
+  const adminRole = await context.prisma.role.findUnique({
+    where: {
+      organizationId_name: {
+        organizationId: organization.id,
+        name: 'admin',
+      },
+    },
+  });
+
+  if (!adminRole) {
+    context.logger.warn('Admin role not found — skipping demo admin assignment');
+  } else {
+    await context.prisma.userRole.upsert({
+      where: {
+        userId_roleId: {
+          userId: admin.id,
+          roleId: adminRole.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: admin.id,
+        roleId: adminRole.id,
+      },
+    });
+  }
 
   const dispatcher = await context.prisma.user.upsert({
     where: {
