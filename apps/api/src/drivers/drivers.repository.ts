@@ -64,15 +64,17 @@ export class DriverRepository {
   }
 
   requireInOrganization(driverId: string, organizationId: string): Promise<Driver> {
-    return this.requireById(driverId).then((driver) => {
-      if (driver.organizationId !== organizationId) {
-        throw new NotFoundException(
-          `Driver ${driverId} not found in organization ${organizationId}`,
-        );
-      }
+    return this.prisma.driver
+      .findFirst({ where: { id: driverId, organizationId } })
+      .then((driver) => {
+        if (!driver) {
+          throw new NotFoundException(
+            `Driver ${driverId} not found in organization ${organizationId}`,
+          );
+        }
 
-      return driver;
-    });
+        return driver;
+      });
   }
 
   isUniqueConstraintError(error: unknown): boolean {
