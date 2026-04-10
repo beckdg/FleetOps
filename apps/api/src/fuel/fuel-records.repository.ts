@@ -79,14 +79,16 @@ export class FuelRecordRepository {
   }
 
   requireInOrganization(recordId: string, organizationId: string): Promise<FuelRecord> {
-    return this.requireById(recordId).then((record) => {
-      if (record.organizationId !== organizationId) {
-        throw new NotFoundException(
-          `Fuel record ${recordId} not found in organization ${organizationId}`,
-        );
-      }
+    return this.prisma.fuelRecord
+      .findFirst({ where: { id: recordId, organizationId } })
+      .then((record) => {
+        if (!record) {
+          throw new NotFoundException(
+            `Fuel record ${recordId} not found in organization ${organizationId}`,
+          );
+        }
 
-      return record;
-    });
+        return record;
+      });
   }
 }

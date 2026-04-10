@@ -35,15 +35,17 @@ export class FuelStationRepository {
   }
 
   requireInOrganization(stationId: string, organizationId: string): Promise<FuelStation> {
-    return this.requireById(stationId).then((station) => {
-      if (station.organizationId !== organizationId) {
-        throw new NotFoundException(
-          `Fuel station ${stationId} not found in organization ${organizationId}`,
-        );
-      }
+    return this.prisma.fuelStation
+      .findFirst({ where: { id: stationId, organizationId } })
+      .then((station) => {
+        if (!station) {
+          throw new NotFoundException(
+            `Fuel station ${stationId} not found in organization ${organizationId}`,
+          );
+        }
 
-      return station;
-    });
+        return station;
+      });
   }
 
   isUniqueConstraintError(error: unknown): boolean {
