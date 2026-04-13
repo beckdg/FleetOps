@@ -6,9 +6,8 @@ describe('ReminderGenerationService', () => {
   const prisma = {
     driver: { findMany: jest.fn() },
     maintenanceRecord: { findMany: jest.fn() },
-    userRole: { findFirst: jest.fn() },
   };
-  const roleRepository = { findByName: jest.fn() };
+  const roleRepository = { findActiveAdminUserIdsByOrganizationIds: jest.fn() };
   const notificationQueueService = { enqueueNotification: jest.fn() };
   const maintenanceReminderQueueService = { enqueueReminder: jest.fn() };
 
@@ -35,12 +34,14 @@ describe('ReminderGenerationService', () => {
         status: DriverStatus.ACTIVE,
       },
     ]);
-    roleRepository.findByName.mockResolvedValue({ id: 'role-1' });
-    prisma.userRole.findFirst.mockResolvedValue({ user: { id: 'user-1' } });
+    roleRepository.findActiveAdminUserIdsByOrganizationIds.mockResolvedValue(
+      new Map([['org-1', 'user-1']]),
+    );
 
     const count = await service.generateLicenseExpiryReminders(new Date('2026-06-01'));
 
     expect(count).toBe(1);
+    expect(roleRepository.findActiveAdminUserIdsByOrganizationIds).toHaveBeenCalledWith(['org-1']);
     expect(notificationQueueService.enqueueNotification).toHaveBeenCalled();
   });
 

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DriverStatus, JobType, MaintenanceStatus, NotificationType } from '@prisma/client';
 
-import { ADMIN_ROLE_NAME } from '../authorization/constants/authorization.constants';
 import { PrismaService } from '../database/prisma.service';
 import { licenseExpiryReminderNotificationContent } from '../notifications/constants/notification.constants';
 import { RoleRepository } from '../roles/roles.repository';
@@ -37,10 +36,18 @@ export class ReminderGenerationService {
       },
     });
 
+    if (drivers.length === 0) {
+      return 0;
+    }
+
+    const organizationIds = [...new Set(drivers.map((driver) => driver.organizationId))];
+    const recipients =
+      await this.roleRepository.findActiveAdminUserIdsByOrganizationIds(organizationIds);
+
     let enqueued = 0;
 
     for (const driver of drivers) {
-      const recipientUserId = await this.resolveReminderRecipient(driver.organizationId);
+      const recipientUserId = recipients.get(driver.organizationId);
 
       if (!recipientUserId) {
         this.logger.warn(
@@ -100,28 +107,6 @@ export class ReminderGenerationService {
     }
 
     return enqueued;
-  }
-
-  private async resolveReminderRecipient(organizationId: string): Promise<string | null> {
-    const adminRole = await this.roleRepository.findByName(organizationId, ADMIN_ROLE_NAME);
-
-    if (!adminRole) {
-      return null;
-    }
-
-    const assignment = await this.prisma.userRole.findFirst({
-      where: {
-        roleId: adminRole.id,
-        user: {
-          organizationId,
-          isActive: true,
-          deletedAt: null,
-        },
-      },
-      include: { user: true },
-    });
-
-    return assignment?.user.id ?? null;
   }
 
   private addDays(date: Date, days: number): Date {

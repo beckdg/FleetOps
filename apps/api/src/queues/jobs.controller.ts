@@ -2,9 +2,12 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/commo
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -24,6 +27,8 @@ import { ReportType } from '../reports/report.service';
 
 @ApiTags('Jobs')
 @ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
+@ApiForbiddenResponse({ description: 'Insufficient permissions' })
 @Controller()
 export class JobsController {
   constructor(
@@ -43,6 +48,7 @@ export class JobsController {
   @Get('jobs/:id')
   @RequirePermission('jobs', 'read')
   @ApiOperation({ summary: 'Get a background job by id' })
+  @ApiParam({ name: 'id', description: 'Background job identifier', format: 'uuid' })
   @ApiOkResponse({ type: JobResponseDto })
   getJob(
     @CurrentUser() user: AuthenticatedUser,
