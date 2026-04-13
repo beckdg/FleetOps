@@ -27,6 +27,16 @@ async function bootstrap(): Promise<void> {
     .setDescription('Fleet and logistics management platform API')
     .setVersion('1.0')
     .addBearerAuth()
+    .addApiKey(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'API Key',
+        description:
+          'Organization API key. Pass the plaintext key as `Authorization: Bearer <api-key>`.',
+      },
+      'api-key',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
