@@ -13,9 +13,13 @@ import {
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
+  ApiSecurity,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -48,6 +52,9 @@ import { WebhookEndpointService } from './webhook-endpoints.service';
 import { WebhookPublisherService } from './webhook-publisher.service';
 
 @ApiTags('Integrations')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
+@ApiForbiddenResponse({ description: 'Insufficient permissions' })
 @Controller()
 export class IntegrationsController {
   constructor(
@@ -57,7 +64,6 @@ export class IntegrationsController {
   ) {}
 
   @Post('api-keys')
-  @ApiBearerAuth()
   @RequirePermission('integrations', 'write')
   @ApiOperation({ summary: 'Create an organization API key' })
   @ApiCreatedResponse({ type: ApiKeyCreatedResponseDto })
@@ -75,7 +81,6 @@ export class IntegrationsController {
   }
 
   @Get('api-keys')
-  @ApiBearerAuth()
   @RequirePermission('integrations', 'read')
   @ApiOperation({ summary: 'List organization API keys' })
   @ApiOkResponse({ type: ApiKeyResponseDto, isArray: true })
@@ -86,9 +91,9 @@ export class IntegrationsController {
   }
 
   @Delete('api-keys/:id')
-  @ApiBearerAuth()
   @RequirePermission('integrations', 'write')
   @ApiOperation({ summary: 'Revoke an organization API key' })
+  @ApiParam({ name: 'id', description: 'API key identifier', format: 'uuid' })
   @ApiOkResponse({ type: ApiKeyResponseDto })
   revokeApiKey(
     @CurrentUser() user: AuthenticatedUser,
@@ -100,7 +105,6 @@ export class IntegrationsController {
   }
 
   @Post('webhooks')
-  @ApiBearerAuth()
   @RequirePermission('integrations', 'write')
   @ApiOperation({ summary: 'Create a webhook endpoint' })
   @ApiCreatedResponse({ type: WebhookEndpointResponseDto })
@@ -118,7 +122,6 @@ export class IntegrationsController {
   }
 
   @Get('webhooks')
-  @ApiBearerAuth()
   @RequirePermission('integrations', 'read')
   @ApiOperation({ summary: 'List webhook endpoints' })
   @ApiOkResponse({ type: WebhookEndpointResponseDto, isArray: true })
@@ -129,9 +132,9 @@ export class IntegrationsController {
   }
 
   @Patch('webhooks/:id')
-  @ApiBearerAuth()
   @RequirePermission('integrations', 'write')
   @ApiOperation({ summary: 'Update a webhook endpoint' })
+  @ApiParam({ name: 'id', description: 'Webhook endpoint identifier', format: 'uuid' })
   @ApiOkResponse({ type: WebhookEndpointResponseDto })
   updateWebhook(
     @CurrentUser() user: AuthenticatedUser,
@@ -149,7 +152,6 @@ export class IntegrationsController {
   }
 
   @Get('webhook-deliveries')
-  @ApiBearerAuth()
   @RequirePermission('integrations', 'read')
   @ApiOperation({ summary: 'List webhook delivery attempts' })
   @ApiOkResponse({ type: WebhookDeliveryResponseDto, isArray: true })
@@ -166,7 +168,13 @@ export class IntegrationsController {
   @Public()
   @UseGuards(ApiKeyGuard)
   @Get('integrations/context')
-  @ApiOperation({ summary: 'Resolve organization context from an API key' })
+  @ApiSecurity('api-key')
+  @ApiOperation({
+    summary: 'Resolve organization context from an API key',
+    description:
+      'Authenticate with `Authorization: Bearer <plaintext-api-key>`. JWT tokens are not accepted on this route.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing, invalid, or revoked API key' })
   @ApiOkResponse({ type: ApiKeyContextResponseDto })
   getApiKeyContext(@CurrentApiKey() context: ApiKeyContext): ApiKeyContextResponseDto {
     return context;
