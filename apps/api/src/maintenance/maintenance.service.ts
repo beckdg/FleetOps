@@ -10,7 +10,6 @@ import {
   MaintenanceStatus,
   MaintenanceType,
   Prisma,
-  Vehicle,
   VehicleStatus,
 } from '@prisma/client';
 import { MaintenanceRecordResponse } from '@fleetops/shared-types';
@@ -27,7 +26,6 @@ import {
   maintenanceTransitionErrorMessage,
   STATUS_TO_MAINTENANCE_EVENT_TYPE,
 } from './constants/maintenance.constants';
-import { MaintenanceEventService } from './maintenance-events.service';
 import {
   CreateMaintenanceRecordData,
   MaintenanceRecordRepository,
@@ -57,7 +55,6 @@ export interface MaintenanceActionInput {
 export class MaintenanceService {
   constructor(
     private readonly maintenanceRecordRepository: MaintenanceRecordRepository,
-    private readonly maintenanceEventService: MaintenanceEventService,
     private readonly vehicleRepository: VehicleRepository,
     private readonly organizationRepository: OrganizationRepository,
     private readonly userRepository: UserRepository,
@@ -91,10 +88,7 @@ export class MaintenanceService {
       createdByUserId: input.createdByUserId,
     };
 
-    const record = await this.maintenanceRecordRepository.create(data);
-
-    await this.maintenanceEventService.recordEvent({
-      maintenanceRecordId: record.id,
+    const { record } = await this.maintenanceRecordRepository.createWithEvent(data, {
       eventType: MaintenanceEventType.MAINTENANCE_SCHEDULED,
       createdByUserId: input.createdByUserId,
     });
@@ -113,19 +107,17 @@ export class MaintenanceService {
     return this.transitionMaintenance(
       input,
       MaintenanceStatus.IN_PROGRESS,
-      async (record) => {
-        await this.syncVehicleToMaintenance(
-          record.vehicleId,
-          record.organizationId,
-          input.actorUserId,
-        );
-
+      async (record, vehicleAudit) => {
         this.fleetAuditService.logMaintenanceStarted({
           organizationId: record.organizationId,
           maintenanceId: record.id,
           vehicleId: record.vehicleId,
           startedByUserId: input.actorUserId,
         });
+
+        if (vehicleAudit) {
+          this.fleetAuditService.logVehicleStatusChanged(vehicleAudit);
+        }
 
         await this.notificationEventService.onMaintenanceStarted(record, record.createdByUserId);
 
@@ -135,7 +127,10 @@ export class MaintenanceService {
           this.buildMaintenanceWebhookPayload(record),
         );
       },
-      { startedAt: new Date() },
+      {
+        startedAt: new Date(),
+        setVehicleStatus: VehicleStatus.IN_MAINTENANCE,
+      },
     );
   }
 
@@ -143,19 +138,17 @@ export class MaintenanceService {
     return this.transitionMaintenance(
       input,
       MaintenanceStatus.COMPLETED,
-      async (record) => {
-        await this.syncVehicleToActiveIfNoMaintenance(
-          record.vehicleId,
-          record.organizationId,
-          input.actorUserId,
-        );
-
+      async (record, vehicleAudit) => {
         this.fleetAuditService.logMaintenanceCompleted({
           organizationId: record.organizationId,
           maintenanceId: record.id,
           vehicleId: record.vehicleId,
           completedByUserId: input.actorUserId,
         });
+
+        if (vehicleAudit) {
+          this.fleetAuditService.logVehicleStatusChanged(vehicleAudit);
+        }
 
         await this.notificationEventService.onMaintenanceCompleted(record, record.createdByUserId);
 
@@ -168,27 +161,31 @@ export class MaintenanceService {
       {
         completedAt: new Date(),
         actualCost: input.actualCost ? new Prisma.Decimal(input.actualCost) : undefined,
+        restoreVehicleIfNoOtherInProgress: true,
       },
     );
   }
 
   async cancelMaintenance(input: MaintenanceActionInput): Promise<MaintenanceRecordResponse> {
-    return this.transitionMaintenance(input, MaintenanceStatus.CANCELLED, async (record) => {
-      if (record.status === MaintenanceStatus.IN_PROGRESS) {
-        await this.syncVehicleToActiveIfNoMaintenance(
-          record.vehicleId,
-          record.organizationId,
-          input.actorUserId,
-        );
-      }
+    return this.transitionMaintenance(
+      input,
+      MaintenanceStatus.CANCELLED,
+      async (record, vehicleAudit) => {
+        this.fleetAuditService.logMaintenanceCancelled({
+          organizationId: record.organizationId,
+          maintenanceId: record.id,
+          vehicleId: record.vehicleId,
+          cancelledByUserId: input.actorUserId,
+        });
 
-      this.fleetAuditService.logMaintenanceCancelled({
-        organizationId: record.organizationId,
-        maintenanceId: record.id,
-        vehicleId: record.vehicleId,
-        cancelledByUserId: input.actorUserId,
-      });
-    });
+        if (vehicleAudit) {
+          this.fleetAuditService.logVehicleStatusChanged(vehicleAudit);
+        }
+      },
+      {
+        restoreVehicleIfNoOtherInProgress: true,
+      },
+    );
   }
 
   async listVehicleMaintenance(
@@ -215,11 +212,22 @@ export class MaintenanceService {
   private async transitionMaintenance(
     input: MaintenanceActionInput,
     targetStatus: MaintenanceStatus,
-    afterTransition: (record: MaintenanceRecord) => Promise<void>,
+    afterTransition: (
+      record: MaintenanceRecord,
+      vehicleAudit?: {
+        organizationId: string;
+        vehicleId: string;
+        previousStatus: VehicleStatus;
+        newStatus: VehicleStatus;
+        changedByUserId: string;
+      },
+    ) => Promise<void>,
     timestamps: {
       startedAt?: Date;
       completedAt?: Date;
       actualCost?: Prisma.Decimal;
+      setVehicleStatus?: VehicleStatus;
+      restoreVehicleIfNoOtherInProgress?: boolean;
     } = {},
   ): Promise<MaintenanceRecordResponse> {
     await this.userRepository.requireActiveInOrganization(input.actorUserId, input.organizationId);
@@ -231,29 +239,58 @@ export class MaintenanceService {
 
     this.assertAllowedTransition(record.status, targetStatus);
 
+    const eventType = STATUS_TO_MAINTENANCE_EVENT_TYPE[targetStatus];
+
+    if (!eventType) {
+      throw new BadRequestException(`Unsupported maintenance transition to ${targetStatus}`);
+    }
+
+    const shouldRestoreVehicle =
+      timestamps.restoreVehicleIfNoOtherInProgress &&
+      (targetStatus === MaintenanceStatus.COMPLETED ||
+        (targetStatus === MaintenanceStatus.CANCELLED &&
+          record.status === MaintenanceStatus.IN_PROGRESS));
+
     try {
-      const updated = await this.maintenanceRecordRepository.update(record.id, {
-        status: targetStatus,
-        startedAt: timestamps.startedAt ?? record.startedAt,
-        completedAt: timestamps.completedAt ?? record.completedAt,
-        actualCost: timestamps.actualCost ?? record.actualCost,
-      });
-
-      const eventType = STATUS_TO_MAINTENANCE_EVENT_TYPE[targetStatus];
-
-      if (eventType) {
-        await this.maintenanceEventService.recordEvent({
-          maintenanceRecordId: updated.id,
+      const result = await this.maintenanceRecordRepository.transitionWithEvent(
+        record.id,
+        input.organizationId,
+        {
+          status: targetStatus,
+          startedAt: timestamps.startedAt ?? record.startedAt,
+          completedAt: timestamps.completedAt ?? record.completedAt,
+          actualCost: timestamps.actualCost ?? record.actualCost,
+        },
+        {
           eventType,
           createdByUserId: input.actorUserId,
           notes: input.notes,
-        });
+        },
+        {
+          setVehicleStatus: timestamps.setVehicleStatus,
+          restoreVehicleIfNoOtherInProgress: shouldRestoreVehicle,
+        },
+      );
+
+      const vehicleAudit =
+        result.vehicle && result.previousVehicleStatus
+          ? {
+              organizationId: result.vehicle.organizationId,
+              vehicleId: result.vehicle.id,
+              previousStatus: result.previousVehicleStatus,
+              newStatus: result.vehicle.status,
+              changedByUserId: input.actorUserId,
+            }
+          : undefined;
+
+      await afterTransition(result.record, vehicleAudit);
+
+      return toMaintenanceRecordResponse(result.record);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
       }
 
-      await afterTransition(updated);
-
-      return toMaintenanceRecordResponse(updated);
-    } catch (error) {
       if (this.maintenanceRecordRepository.isUniqueConstraintError(error)) {
         throw new ConflictException('Vehicle already has maintenance in progress');
       }
@@ -264,58 +301,6 @@ export class MaintenanceService {
 
       throw error;
     }
-  }
-
-  private async syncVehicleToMaintenance(
-    vehicleId: string,
-    organizationId: string,
-    actorUserId: string,
-  ): Promise<void> {
-    const vehicle = await this.vehicleRepository.requireInOrganization(vehicleId, organizationId);
-
-    if (vehicle.status === VehicleStatus.IN_MAINTENANCE) {
-      return;
-    }
-
-    await this.updateVehicleStatus(vehicle, VehicleStatus.IN_MAINTENANCE, actorUserId);
-  }
-
-  private async syncVehicleToActiveIfNoMaintenance(
-    vehicleId: string,
-    organizationId: string,
-    actorUserId: string,
-  ): Promise<void> {
-    const activeMaintenance =
-      await this.maintenanceRecordRepository.findInProgressByVehicleId(vehicleId);
-
-    if (activeMaintenance.length > 0) {
-      return;
-    }
-
-    const vehicle = await this.vehicleRepository.requireInOrganization(vehicleId, organizationId);
-
-    if (vehicle.status !== VehicleStatus.IN_MAINTENANCE) {
-      return;
-    }
-
-    await this.updateVehicleStatus(vehicle, VehicleStatus.ACTIVE, actorUserId);
-  }
-
-  private async updateVehicleStatus(
-    vehicle: Vehicle,
-    status: VehicleStatus,
-    actorUserId: string,
-  ): Promise<void> {
-    const previousStatus = vehicle.status;
-    await this.vehicleRepository.updateStatus(vehicle.id, { status });
-
-    this.fleetAuditService.logVehicleStatusChanged({
-      organizationId: vehicle.organizationId,
-      vehicleId: vehicle.id,
-      previousStatus,
-      newStatus: status,
-      changedByUserId: actorUserId,
-    });
   }
 
   private buildMaintenanceWebhookPayload(record: MaintenanceRecord): Record<string, unknown> {
