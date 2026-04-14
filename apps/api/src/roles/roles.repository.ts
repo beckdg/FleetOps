@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 
+import { ADMIN_ROLE_NAME } from '../authorization/constants/authorization.constants';
 import { PrismaService } from '../database/prisma.service';
 
 export interface CreateRoleData {
@@ -94,13 +95,54 @@ export class RoleRepository {
   }
 
   requireInOrganization(roleId: string, organizationId: string): Promise<Role> {
-    return this.requireById(roleId).then((role) => {
-      if (role.organizationId !== organizationId) {
+    return this.prisma.role.findFirst({ where: { id: roleId, organizationId } }).then((role) => {
+      if (!role) {
         throw new NotFoundException(`Role ${roleId} not found in organization ${organizationId}`);
       }
 
       return role;
     });
+  }
+
+  findActiveAdminUserIdsByOrganizationIds(organizationIds: string[]): Promise<Map<string, string>> {
+    if (organizationIds.length === 0) {
+      return Promise.resolve(new Map());
+    }
+
+    return this.prisma.userRole
+      .findMany({
+        where: {
+          role: {
+            organizationId: { in: organizationIds },
+            name: ADMIN_ROLE_NAME,
+          },
+          user: {
+            organizationId: { in: organizationIds },
+            isActive: true,
+            deletedAt: null,
+          },
+        },
+        select: {
+          user: {
+            select: {
+              id: true,
+              organizationId: true,
+            },
+          },
+        },
+        orderBy: [{ assignedAt: 'asc' }],
+      })
+      .then((assignments) => {
+        const recipients = new Map<string, string>();
+
+        for (const assignment of assignments) {
+          if (!recipients.has(assignment.user.organizationId)) {
+            recipients.set(assignment.user.organizationId, assignment.user.id);
+          }
+        }
+
+        return recipients;
+      });
   }
 
   isUniqueConstraintError(error: unknown): boolean {
