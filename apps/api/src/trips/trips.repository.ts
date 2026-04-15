@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Trip, TripStatus } from '@prisma/client';
+import { Prisma, Trip, TripEvent, TripEventType, TripStatus } from '@prisma/client';
 
 import { PrismaService } from '../database/prisma.service';
 import { ACTIVE_TRIP_STATUSES } from './constants/trip.constants';
@@ -22,9 +22,87 @@ export interface UpdateTripStatusData {
   actualEndAt?: Date | null;
 }
 
+export interface CreateTripEventData {
+  eventType: TripEventType;
+  createdByUserId: string;
+  notes?: string;
+}
+
 @Injectable()
 export class TripRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  createWithEvent(
+    data: CreateTripData,
+    event: CreateTripEventData,
+  ): Promise<{ trip: Trip; event: TripEvent }> {
+    return this.prisma.$transaction(async (tx) => {
+      const trip = await tx.trip.create({
+        data: {
+          organizationId: data.organizationId,
+          vehicleId: data.vehicleId,
+          driverId: data.driverId,
+          tripNumber: data.tripNumber,
+          origin: data.origin,
+          destination: data.destination,
+          scheduledStartAt: data.scheduledStartAt,
+          scheduledEndAt: data.scheduledEndAt,
+          createdByUserId: data.createdByUserId,
+          status: TripStatus.PLANNED,
+        },
+      });
+
+      const tripEvent = await tx.tripEvent.create({
+        data: {
+          tripId: trip.id,
+          eventType: event.eventType,
+          createdByUserId: event.createdByUserId,
+          notes: event.notes,
+        },
+      });
+
+      return { trip, event: tripEvent };
+    });
+  }
+
+  transitionWithEvent(
+    tripId: string,
+    organizationId: string,
+    statusUpdate: UpdateTripStatusData,
+    event: CreateTripEventData | null,
+  ): Promise<Trip> {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.trip.findFirst({
+        where: { id: tripId, organizationId },
+      });
+
+      if (!existing) {
+        throw new NotFoundException(`Trip ${tripId} not found in organization ${organizationId}`);
+      }
+
+      const trip = await tx.trip.update({
+        where: { id: tripId },
+        data: {
+          status: statusUpdate.status,
+          actualStartAt: statusUpdate.actualStartAt,
+          actualEndAt: statusUpdate.actualEndAt,
+        },
+      });
+
+      if (event) {
+        await tx.tripEvent.create({
+          data: {
+            tripId: trip.id,
+            eventType: event.eventType,
+            createdByUserId: event.createdByUserId,
+            notes: event.notes,
+          },
+        });
+      }
+
+      return trip;
+    });
+  }
 
   create(data: CreateTripData): Promise<Trip> {
     return this.prisma.trip.create({
@@ -145,8 +223,8 @@ export class TripRepository {
   }
 
   requireInOrganization(tripId: string, organizationId: string): Promise<Trip> {
-    return this.requireById(tripId).then((trip) => {
-      if (trip.organizationId !== organizationId) {
+    return this.prisma.trip.findFirst({ where: { id: tripId, organizationId } }).then((trip) => {
+      if (!trip) {
         throw new NotFoundException(`Trip ${tripId} not found in organization ${organizationId}`);
       }
 

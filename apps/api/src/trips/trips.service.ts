@@ -102,10 +102,7 @@ export class TripService {
     };
 
     try {
-      const trip = await this.tripRepository.create(data);
-
-      await this.tripEventService.recordEvent({
-        tripId: trip.id,
+      const { trip } = await this.tripRepository.createWithEvent(data, {
         eventType: TripEventType.TRIP_CREATED,
         createdByUserId: input.createdByUserId,
       });
@@ -305,28 +302,34 @@ export class TripService {
 
     this.assertAllowedTransition(trip.status, targetStatus);
 
+    const eventType = STATUS_TO_EVENT_TYPE[targetStatus];
+
     try {
-      const updated = await this.tripRepository.updateStatus(trip.id, {
-        status: targetStatus,
-        actualStartAt: timestamps.actualStartAt ?? trip.actualStartAt,
-        actualEndAt: timestamps.actualEndAt ?? trip.actualEndAt,
-      });
-
-      const eventType = STATUS_TO_EVENT_TYPE[targetStatus];
-
-      if (eventType) {
-        await this.tripEventService.recordEvent({
-          tripId: updated.id,
-          eventType,
-          createdByUserId: input.actorUserId,
-          notes: input.notes,
-        });
-      }
+      const updated = await this.tripRepository.transitionWithEvent(
+        trip.id,
+        input.organizationId,
+        {
+          status: targetStatus,
+          actualStartAt: timestamps.actualStartAt ?? trip.actualStartAt,
+          actualEndAt: timestamps.actualEndAt ?? trip.actualEndAt,
+        },
+        eventType
+          ? {
+              eventType,
+              createdByUserId: input.actorUserId,
+              notes: input.notes,
+            }
+          : null,
+      );
 
       await audit(updated, input.actorUserId);
 
       return toTripResponse(updated);
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
       if (this.tripRepository.isNotFoundError(error)) {
         throw new NotFoundException(`Trip ${input.tripId} not found`);
       }
