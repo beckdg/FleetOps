@@ -64,15 +64,17 @@ export class VehicleRepository {
   }
 
   requireInOrganization(vehicleId: string, organizationId: string): Promise<Vehicle> {
-    return this.requireById(vehicleId).then((vehicle) => {
-      if (vehicle.organizationId !== organizationId) {
-        throw new NotFoundException(
-          `Vehicle ${vehicleId} not found in organization ${organizationId}`,
-        );
-      }
+    return this.prisma.vehicle
+      .findFirst({ where: { id: vehicleId, organizationId } })
+      .then((vehicle) => {
+        if (!vehicle) {
+          throw new NotFoundException(
+            `Vehicle ${vehicleId} not found in organization ${organizationId}`,
+          );
+        }
 
-      return vehicle;
-    });
+        return vehicle;
+      });
   }
 
   isUniqueConstraintError(error: unknown): boolean {
