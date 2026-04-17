@@ -34,7 +34,7 @@ export interface PermissionSpec {
   action: string;
 }
 
-export type HttpMethod = 'get' | 'post' | 'patch';
+export type HttpMethod = 'get' | 'post' | 'patch' | 'delete';
 
 export interface ProtectedEndpointSpec<TContext> {
   label: string;
@@ -464,6 +464,31 @@ export function registerRequireAllPermissionsTests<
       ).expect(successStatus);
     });
   });
+}
+
+export function runProtectedEndpointMatrix<
+  TContext extends { organization: { id: string; slug: string } },
+>(
+  getEnv: () => HttpTestEnv,
+  getContext: () => Promise<TContext> | TContext,
+  specs: ProtectedEndpointSpec<TContext>[],
+): void {
+  for (const spec of specs) {
+    registerProtectedEndpointRbacTests(
+      getEnv,
+      () => {
+        const context = getContext();
+        if (context instanceof Promise) {
+          throw new Error(
+            'runProtectedEndpointMatrix requires a synchronous context factory; use registerProtectedEndpointRbacTests for async setup',
+          );
+        }
+
+        return context;
+      },
+      spec,
+    );
+  }
 }
 
 export async function expectCrossOrganizationDenied(
