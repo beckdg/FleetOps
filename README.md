@@ -120,6 +120,8 @@ docker compose up postgres -d
 
 ## Development Workflow
 
+See the [documentation index](./docs/architecture.md) for architecture, domain guides, deployment, and troubleshooting.
+
 ### Available Scripts
 
 | Command          | Description                    |
