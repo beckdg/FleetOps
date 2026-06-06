@@ -16,12 +16,6 @@
 # Git hooks (not needed in image)
 .husky
 
-# Tests (not needed in production image)
-**/*.spec.ts
-**/*.e2e-spec.ts
-**/test
-**/__tests__
-
 # IDE and OS
 .idea
 .vscode
