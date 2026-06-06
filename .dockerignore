@@ -1,13 +1,39 @@
-node_modules
-dist
-build
-coverage
-.git
-.github
-.husky
-*.md
+# Dependencies and build outputs
+**/node_modules
+**/.pnpm-store
+**/dist
+**/build
+**/coverage
+**/.turbo
+**/.cache
+
+# Local environment (use .env.docker for Compose)
 .env
 .env.*
 !.env.example
+!.env.docker.example
+
+# Git hooks (not needed in image)
+.husky
+
+# Tests (not needed in production image)
 **/*.spec.ts
+**/*.e2e-spec.ts
 **/test
+**/__tests__
+
+# IDE and OS
+.idea
+.vscode
+*.swp
+.DS_Store
+Thumbs.db
+
+# Release artifacts
+release
+
+# Docker local overrides
+.env.docker
+
+# Keep documentation out of image to reduce size
+docs
